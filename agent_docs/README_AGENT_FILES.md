@@ -52,3 +52,9 @@ CRL/
 ## First instruction for any agent
 
 Read root-level `AGENTS.md` first. It points to the supporting files in `agent_docs/`.
+
+The root `AGENTS.md` also carries durable cleanup policy for removing transient stage-completion artifacts without deleting evidence or experiment outputs.
+
+The root `AGENTS.md` also requires stage-completion evidence to be stored in a concise, highly condensed form unless raw artifacts must be preserved for reproducibility.
+
+The root `AGENTS.md` also allows conservative post-stage structural cleanup inside `src/`, including needed renames or moves, while preserving valid Webots controller/world wiring.

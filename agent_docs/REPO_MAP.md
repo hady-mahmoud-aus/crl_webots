@@ -30,7 +30,7 @@ CRL/
   src/
     .vscode/
     controllers/
-      test-controller/
+      layer0_smoke_controller/
     libraries/
     plugins/
     protos/
@@ -69,6 +69,23 @@ papers/**
 project_docs/**
 procect_docs/**
 ```
+
+## Post-stage `src/` cleanup
+
+After a stage is completed, agents may clean up `src/` structure only when needed to improve readability or modularity.
+
+Typical allowed changes:
+
+- rename unclear controller-side files or folders,
+- move kept artifacts into clearer stage-local locations,
+- add small directories such as `artifacts/` when they immediately hold real files,
+- remove empty or redundant leftovers.
+
+Webots safety constraints:
+
+- preserve valid controller lookup from world files,
+- avoid renaming or moving world/proto/plugin assets unless required to keep runtime wiring valid,
+- if a controller rename forces a world reference update, treat that as a coupled change and require manual Webots re-verification.
 
 ## Recommended code layout
 
@@ -142,3 +159,5 @@ Do not hard-code absolute paths.
 Do not assume paths lack spaces.
 
 Be careful with Webots controllers, which may execute from the controller directory rather than the repo root.
+
+If a post-stage cleanup renames a controller folder, update the linked world controller reference in the same change and re-verify manually in Webots.

@@ -8,11 +8,13 @@ Update after meaningful changes.
 
 ## Current status
 
-Current layer: **Layer 0 — Environment smoke test**
+Current layer: **Layer 1 — Minimal RL environment**
 
-Status: **Not yet verified**
+Status: **Layer 0 closed; Layer 1 not started**
 
 Last updated: **2026-04-26**
+
+Note: Layer 0 was closed after controller-side smoke testing, condensed evidence capture, and manual Webots verification of motion and collision stopping. Stage 0 assets are now being structurally cleaned up under `src/controllers/layer0_smoke_controller/`; because that cleanup changes Webots-facing controller linkage, manual re-verification is required before relying on the renamed wiring. `ruff` could not be run in the current environment because it is not installed.
 
 ## Evidence gate
 
@@ -26,17 +28,17 @@ For any completed task:
 
 ## Layer 0 — Environment smoke test
 
-- [ ] Controller imports without error
-- [ ] Devices found
-- [ ] Sensors readable
-- [ ] Motors controllable
-- [ ] Wheel position sensors readable
-- [ ] Scripted forward action works
-- [ ] Scripted rotate actions work
-- [ ] Collision threshold logged
-- [ ] Smoke log written
-- [ ] Automated checks passed
-- [ ] Manual Webots verification passed
+- [x] Controller imports without error
+- [x] Devices found
+- [x] Sensors readable
+- [x] Motors controllable
+- [x] Wheel position sensors readable
+- [x] Scripted forward action works
+- [x] Scripted rotate actions work
+- [x] Collision threshold logged
+- [x] Smoke log written
+- [x] Automated checks passed
+- [x] Manual Webots verification passed
 
 ## Layer 1 — Minimal RL environment
 
@@ -89,9 +91,9 @@ For any completed task:
 
 When adding ecosystem features:
 
-- [ ] `ECOSYSTEM_FEATURE_PROTOCOL.md` followed
-- [ ] `AGENTS.md` updated
-- [ ] `MEMORY.md` updated
-- [ ] Specialized files updated
-- [ ] `README_AGENT_FILES.md` updated if needed
-- [ ] Follow-up tasks added to `TODO.md` if needed
+- [x] `ECOSYSTEM_FEATURE_PROTOCOL.md` followed
+- [x] `AGENTS.md` updated
+- [x] `MEMORY.md` updated
+- [x] Specialized files updated
+- [x] `README_AGENT_FILES.md` updated if needed
+- [x] Follow-up tasks added to `TODO.md` if needed

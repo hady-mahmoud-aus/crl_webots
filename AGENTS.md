@@ -145,6 +145,8 @@ If user action in Webots is needed, give clear instructions:
 6. what counts as pass/fail,
 7. what to report if it fails.
 
+For this repository, prefer running `pytest -p no:cacheprovider` unless the local pytest cache issue has been explicitly resolved. This avoids Windows cache-temp permission failures that are unrelated to project logic.
+
 ## Evidence-based completion rule
 
 Do not claim a task is complete unless you report:
@@ -157,6 +159,15 @@ Do not claim a task is complete unless you report:
 
 If something was not run, say so clearly.
 
+When saving stage-completion evidence, keep it highly condensed:
+
+- store only the data needed to justify pass/fail,
+- prefer concise summaries over raw console dumps,
+- keep key values, key events, artifact paths, and final status,
+- avoid duplicated traces or verbose step-by-step logs unless they are required to explain a failure.
+
+If raw artifacts must be preserved for reproducibility or experiment integrity, keep them in their canonical location and reference them from the concise summary instead of copying them into multiple places.
+
 ## Experiment integrity rule
 
 Never fake, cherry-pick, overwrite, or silently delete experiment results.
@@ -164,6 +175,59 @@ Never fake, cherry-pick, overwrite, or silently delete experiment results.
 Every run should preserve its config, timestamp, seed, metrics, checkpoint metadata, and notes.
 
 Do not delete runs, checkpoints, replay buffers, plots, or logs unless the user explicitly asks.
+
+## Stage cleanup rule
+
+After a layer or stage is completed, agents should remove transient, unneeded generated files created during implementation or verification.
+
+Safe cleanup targets include:
+
+- Python `__pycache__` folders,
+- `.pyc` / `.pyo` files,
+- temporary pytest cache folders,
+- scratch debug files created only for local validation.
+
+Do not delete:
+
+- source files,
+- configs,
+- docs,
+- user-authored notes,
+- smoke-test or experiment evidence logs that support completion claims,
+- anything under `runs/`,
+- checkpoints, replay buffers, plots, or metrics,
+- files not created by the current task unless the user explicitly asks.
+
+If a file might be evidence or might be needed for the next layer, keep it and mention it in handoff instead of deleting it.
+
+## `src/` structural cleanup rule
+
+After a stage is completed, agents may perform a conservative structural cleanup inside `src/` only when it materially improves readability, modularity, or folder structure.
+
+Allowed actions when needed:
+
+- rename unclear files or folders,
+- move stage-local files into clearer locations,
+- create small directories that immediately improve organization,
+- remove empty or redundant directories left behind.
+
+Disallowed by default:
+
+- structural churn for its own sake,
+- restructuring unfinished future-layer code,
+- touching non-`src/` paths as part of this cleanup feature,
+- changing `src/worlds/**`, `src/protos/**`, or `src/plugins/**` unless that change is required to keep Webots wiring valid after an approved rename.
+
+Webots safety requirements:
+
+- preserve the Webots-specific directory structure and valid controller resolution,
+- if a controller rename or move affects world/controller linkage, update every linked reference in the same change,
+- rerun manual Webots verification after any cleanup that changes runtime wiring.
+
+Evidence requirements:
+
+- preserved stage evidence must remain accessible,
+- cleanup may improve evidence placement, but it must not hide or orphan the canonical artifact.
 
 ## Long-running task rule
 

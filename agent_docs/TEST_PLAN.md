@@ -18,8 +18,10 @@ Run when code changes:
 ```powershell
 black .
 ruff check .
-pytest
+pytest -p no:cacheprovider
 ```
+
+The repo-level `pytest.ini` also excludes `pytest-cache-files-*` and `.pytest_cache` from test discovery.
 
 ## Pure logic tests
 
@@ -101,3 +103,5 @@ A task is not complete unless the agent reports:
 - manual Webots status if applicable,
 - outputs/logs produced,
 - limitations.
+
+When outputs or evidence are saved for completion, they should be concise and contain only the necessary data needed to justify the result. If a larger raw artifact must be preserved, the completion record should reference it rather than duplicate it.

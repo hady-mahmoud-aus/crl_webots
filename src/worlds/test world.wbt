@@ -5,8 +5,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.1432980300981167 0.9786013805293424 0.14766520441886333 1.5624260560813124
-  position -0.0923563646982569 -0.07858591926560465 1.0955524886706194
+  orientation 0.019584410389403395 0.998898119284012 -0.04264971465980842 0.861635486428153
+  position -2.3592593336925876 -0.13494759855598543 2.811385931403921
 }
 Background {
   skyColor [
@@ -19,6 +19,10 @@ RectangleArena {
 }
 Robot {
   children [
+    Compass {
+    }
+    GPS {
+    }
     HingeJoint {
       jointParameters HingeJointParameters {
         axis 0 1 0
@@ -1583,7 +1587,7 @@ Robot {
       0 0 0
     ]
   }
-  controller "test-controller"
+  controller "layer0_smoke_controller"
   cpuConsumption 1.11
   remoteControl "e-puck_bluetooth"
 }

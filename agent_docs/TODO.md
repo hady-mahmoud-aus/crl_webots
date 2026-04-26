@@ -10,18 +10,19 @@
 
 ## Layer 0
 
-- [ ] Create/verify smoke-test controller.
-- [ ] Read distance sensors.
-- [ ] Read GPS.
-- [ ] Read Compass.
-- [ ] Control wheel motors.
-- [ ] Read wheel position sensors.
-- [ ] Script forward/left/right actions.
-- [ ] Log sensor/action results.
-- [ ] Run manual Webots verification.
+- [x] Create/verify smoke-test controller.
+- [x] Read distance sensors.
+- [x] Read GPS.
+- [x] Read Compass.
+- [x] Control wheel motors.
+- [x] Read wheel position sensors.
+- [x] Script forward/left/right actions.
+- [x] Log sensor/action results.
+- [x] Run manual Webots verification.
 
 ## Layer 1
 
+- [ ] If Stage 0 controller/evidence structure is cleaned up, re-run manual Webots verification before relying on the renamed wiring.
 - [ ] Implement environment wrapper.
 - [ ] Implement observation contract.
 - [ ] Implement action contract for `three_action`.

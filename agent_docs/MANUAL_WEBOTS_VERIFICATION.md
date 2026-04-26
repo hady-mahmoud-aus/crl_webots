@@ -21,7 +21,8 @@ Manual Webots verification is required for changes touching:
 - collision detection,
 - target/scene assumptions,
 - macro-action execution,
-- live controller logging.
+- live controller logging,
+- controller renames or folder moves that affect world/controller linkage.
 
 ## Agent instruction format
 
@@ -48,6 +49,7 @@ When manual verification is needed, agents must provide:
 - Webots console error,
 - whether robot moved,
 - sensor/log values,
+- whether proximity-threshold collision detection was noisy or missed obvious contacts,
 - screenshot if useful.
 ```
 
@@ -66,6 +68,7 @@ When manual verification is needed, agents must provide:
 - [ ] Rotate-left and rotate-right rotate in opposite directions.
 - [ ] Collision threshold triggers near obstacles.
 - [ ] Smoke-test log is written.
+- [ ] If collision sensing is unreliable, that is explicitly reported for future sensor-scope review.
 
 ## Layer 1 checklist
 
@@ -90,3 +93,12 @@ Required after adding diagonal or modified macro-actions:
 - [ ] Timeout works.
 - [ ] Collision interruption works.
 - [ ] Logs include action ID/name/duration/collision status.
+
+## Structural-cleanup checklist
+
+Required after post-stage `src/` cleanup that changes Webots-facing wiring:
+
+- [ ] World still resolves the intended controller.
+- [ ] Renamed or moved controller starts without path errors.
+- [ ] Expected evidence artifact path exists after the move.
+- [ ] Runtime behavior is unchanged except for the cleaner structure.

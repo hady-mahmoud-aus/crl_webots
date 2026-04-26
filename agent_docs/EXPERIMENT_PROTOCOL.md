@@ -113,6 +113,21 @@ metrics/episode_metrics.csv
 
 Stable metric names are defined in `PROJECT_CONTRACTS.md`.
 
+## Stage evidence condensation
+
+When saving evidence for stage completion, prefer a concise summary artifact over large raw dumps.
+
+Keep only what is needed to support the claim, for example:
+
+- pass/fail status,
+- timestamp,
+- config or world reference,
+- key metrics or sensor readings,
+- notable failure or limitation notes,
+- path to any preserved canonical raw artifact.
+
+Do not duplicate full console logs, repeated step traces, or long sensor sequences into stage summaries unless the extra detail is necessary to diagnose a failure.
+
 ## Reproducibility checklist
 
 Before presenting a result, confirm:
@@ -137,6 +152,8 @@ Do not commit large generated artifacts unless asked:
 - large CSVs.
 
 Use `.gitignore` for generated outputs.
+
+Stage-completion cleanup may remove transient tooling artifacts such as `__pycache__/`, `*.pyc`, `*.pyo`, or disposable pytest cache folders, but it must not delete evidence logs, run directories, checkpoints, replay buffers, metrics, or plots unless the user explicitly asks.
 
 ## Long-running runs
 
