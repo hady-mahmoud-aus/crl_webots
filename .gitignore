@@ -1,0 +1,103 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# Python packaging/build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Environment variables and local config
+.env
+.env.*
+!.env.example
+
+# IDE/editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Webots generated/cache files
+*.wbproj
+*.wbproj.*
+*.wbt.bak
+*.wbo
+*.log
+webots.log
+
+# Webots local runtime artifacts
+src/controllers/**/build/
+src/controllers/**/__pycache__/
+src/plugins/**/build/
+src/worlds/*.jpg
+src/worlds/*.jpeg
+src/worlds/*.png
+
+# Project run outputs
+runs/
+logs/
+outputs/
+checkpoints/
+metrics/
+plots/
+
+# RL artifacts
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pkl
+*.pickle
+replay_memory*
+selective_memory*
+episode_buffer*
+tensorboard/
+wandb/
+
+# Data exports
+*.csv
+*.tsv
+*.jsonl
+*.parquet
+*.npz
+*.npy
+
+# Keep placeholder files
+!runs/.gitkeep
+!logs/.gitkeep
+!outputs/.gitkeep
+
+# Temporary files
+tmp/
+temp/
+.cache/
+*.tmp
+*.bak
+
+# OS-specific
+ehthumbs.db
+Desktop.ini
