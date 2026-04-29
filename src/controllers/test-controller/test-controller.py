@@ -1,23 +1,46 @@
-from controller import Robot
+from controller import Robot, Supervisor
+from utils.actions import *
+from utils.sensors import *
+from utils.motors import getMotors
+from utils.layer_0 import onCollision, resetPosition
 
-def position_all(position, *args):
-    for motor in args:
-        motor.setPosition(position)
-
-def velocity_all(velocity, *args):
-    for motor in args:
-        motor.setVelocity(velocity)
-
-robot = Robot()
-
-# get the time step of the current world.
+robot = Supervisor()
 timestep = int(robot.getBasicTimeStep())
 
-motor_left = robot.getDevice('left wheel motor')
-motor_right = robot.getDevice('right wheel motor')
+distance_sensors = getDistanceSensors(robot)
+enableSensors(distance_sensors, timestep)
 
-position_all(float('inf'), motor_right, motor_left)
+position_sensors = getPositionSensors(robot)
+enableSensors(position_sensors, timestep)
+
+gps = robot.getDevice('gps')
+gps.enable(timestep)
+
+inertial_unit = robot.getDevice('inertial unit')
+inertial_unit.enable(timestep)
+
+motors = getMotors(robot)
+
+collision = False
+once = False
+current_time = float('inf')
 
 while robot.step(timestep) != -1:
     
-    velocity_all(2, motor_right, motor_left)
+    sensor_values = readSensors(distance_sensors)
+    current_position = readSensors(position_sensors)
+    
+    print(readHeading(inertial_unit))
+
+    if not once: 
+        boolean = onCollision(sensor_values, motors, current_position)
+        collision, once = (boolean, boolean)
+        
+        if once: current_time = robot.getTime()
+
+    if not collision:
+        action(0, motors, current_position)
+        
+    if robot.getTime() - current_time >= 5:
+        resetPosition(robot)
+

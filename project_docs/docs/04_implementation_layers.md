@@ -16,7 +16,7 @@ Implement:
 
 - e-puck sensor reading
 - motor commands
-- GPS/Compass access
+- GPS/InertialUnit access
 - reset logic
 - fixed target
 - collision detection

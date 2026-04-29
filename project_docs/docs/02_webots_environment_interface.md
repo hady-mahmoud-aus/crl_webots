@@ -6,11 +6,25 @@ Use these Webots devices:
 
 - distance sensors: `ps0` to `ps7`
 - GPS
-- Compass
+- InertialUnit
 - left wheel motor
 - right wheel motor
 - left wheel position sensor
 - right wheel position sensor
+
+## Heading from InertialUnit
+
+Use the Webots `InertialUnit` to estimate robot heading for the policy observation.
+Enable it at reset/setup time and read roll, pitch, and yaw with:
+
+```python
+roll, pitch, yaw = inertial_unit.getRollPitchYaw()
+theta = yaw
+sin_theta = math.sin(theta)
+cos_theta = math.cos(theta)
+```
+
+Use `sin_theta` and `cos_theta` as the heading features in the observation vector.
 
 ## Robot constants
 
@@ -90,7 +104,7 @@ A macro-action should:
 3. command wheel targets,
 4. step the simulator until completion, collision, or timeout,
 5. accumulate low-level rewards if needed,
-6. read GPS, Compass, and proximity sensors,
+6. read GPS, InertialUnit, and proximity sensors,
 7. update visited cells,
 8. return the next observation and transition data.
 

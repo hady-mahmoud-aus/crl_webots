@@ -29,17 +29,6 @@ dist/
 .env.*
 !.env.example
 
-# IDE/editor
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/tasks.json
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
 
 # Webots generated/cache files
 *.wbproj
