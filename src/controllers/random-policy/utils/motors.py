@@ -1,7 +1,6 @@
 from controller import Robot
 
 
-
 def getMotors(robot: Robot) -> dict:
     return {
         'right': robot.getDevice('right wheel motor'),

@@ -5,8 +5,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.04533092875141069 0.9978345223014659 0.04765892363387753 1.5229645153222091
-  position -0.1055112335198805 0.006153820277554289 1.1825988339738691
+  orientation -0.005398042650518139 0.9999705508825947 0.00545513547983281 1.5608286177774509
+  position -0.11018105288684246 -0.004179207459437224 4.049379121106612
 }
 Background {
   skyColor [
@@ -1587,7 +1587,7 @@ Robot {
       0 0 0
     ]
   }
-  controller "test-controller"
+  controller "random-policy"
   supervisor TRUE
   cpuConsumption 1.11
   remoteControl "e-puck_bluetooth"

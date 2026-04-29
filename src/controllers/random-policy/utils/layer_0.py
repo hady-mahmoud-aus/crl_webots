@@ -36,29 +36,35 @@ def resetPosition(robot: Supervisor, x=None, y=None):
 # Collision handling (needs refinement for practical use)
 #########################
 
-from .sensors import collision_value, front_sensor_names
+from .sensors import collision_value, front_sensor_names, readSensors
 from .actions import forward_step_radians, forward_velocity
 from .motors import setVelocityAll
 
-def reverse(motors: dict, current_position: dict):
+def reverse(motors: dict, position_sensors: dict):
     setVelocityAll(motors, forward_velocity / 2)
-    
+
+    readings = readSensors(position_sensors)
+
     reverse_radians = forward_step_radians * 0.25
-    
-    for name, motor in motors.items():
-        current = current_position[name]
-        
-        motor.setPosition(current - reverse_radians)
+
+    targets = {
+        "left": readings["left"] - reverse_radians,
+        "right": readings["right"] - reverse_radians
+    }
+
+    motors["left"].setPosition(targets["left"])
+    motors["right"].setPosition(targets["right"])
+
+    return targets
 
 
-def onCollision(values: dict, motors: dict, current_position: dict) -> bool: 
-    front_sensors = {name: value for name, value in values.items() if name in front_sensor_names}.values()
+def onCollision(distance_sensors: dict, position_sensors: dict,  motors: dict) -> dict: 
+    front_sensors = {name: sensor for name, sensor in distance_sensors.items() if name in front_sensor_names}
+    distance_readings = readSensors(front_sensors, "distance").values()
     
-    if any(value > collision_value for value in front_sensors):
-        reverse(motors, current_position)
-        
-        return True
+    if any(value >= collision_value for value in distance_readings):
+        return reverse(motors, position_sensors)
     
-    return False
+    return None
 
 #########################

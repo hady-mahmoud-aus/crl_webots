@@ -4,9 +4,11 @@
 
 The method is:
 
-> Custom PyTorch Double DQN + selective episodic replay inspired by OPR + DQN-compatible online EWC approximation inspired by KGCRL.
+> Custom PyTorch Double DQN for search + selective episodic replay inspired by OPR + DQN-compatible online EWC approximation inspired by KGCRL, with deterministic post-reveal homing.
 
 This is an inspired-by adaptation, not an exact implementation of either paper.
+
+The learned RL component solves the search problem only. It learns to explore and reveal the hidden target. Once the target is revealed, the learned policy stops and a deterministic homing controller takes over.
 
 ## Q-network
 
@@ -26,31 +28,37 @@ o_t
 Q(o_t,\cdot)
 $$
 
-The output dimension equals the number of discrete actions.
+The output dimension equals the number of discrete search actions.
 
-## Double DQN target for macro-actions
+## Double DQN target for search macro-actions
 
-Each macro-action transition is:
+Each search macro-action transition is:
 
 $$
-(s_t,a_t,R_t,s_{t+n},done,n)
+(s_t,a_t,R_t,s_{t+n},done_{search},n)
 $$
 
-where $n$ is the number of Webots controller steps inside the macro-action.
+where $n$ is the number of Webots controller steps inside the search macro-action.
 
-The accumulated reward is:
+The accumulated search reward is:
 
 $$
 R_t=
-\sum_{\ell=0}^{n-1}\gamma^\ell r_{t+\ell}
+\sum_{\ell=0}^{n-1}\gamma^\ell r^{search}_{t+\ell}
 $$
+
+The search terminal flag $done_{search}$ is true if:
+
+- the target is revealed,
+- the maximum number of search decision steps is reached,
+- optionally, an unrecoverable search-phase failure occurs.
 
 The Double DQN target is:
 
 $$
 y=
 \begin{cases}
-R_t, & \text{if done}\\
+R_t, & \text{if } done_{search}\\
 R_t+\gamma^n Q_{target}
 \left(
 s',
@@ -72,9 +80,11 @@ Q_{online}(s,a)-y
 \right]
 $$
 
+Do not add deterministic homing rewards to $R_t$.
+
 ## Current replay buffer
 
-Store macro-action transitions:
+Store search macro-action transitions:
 
 ```python
 transition = {
@@ -82,22 +92,24 @@ transition = {
     "action": action,
     "reward_sum": reward_sum,
     "next_state": next_state,
-    "done": done,
+    "done_search": done_search,
     "duration": duration,
     "info": info,
 }
 ```
 
+Homing controller steps after reveal should not be stored as DQN transitions.
+
 ## Selective episodic replay
 
-After each scene, store top-$K$ high-quality episodes.
+After each scene, store top-$K$ high-quality search episodes.
 
 Episode quality should prioritize:
 
-1. success,
+1. target revealed / `rl_success`,
 2. high coverage,
-3. low collisions,
-4. shorter time or higher return.
+3. low search-phase collisions,
+4. shorter search time or higher search return.
 
 Example episode record:
 
@@ -106,12 +118,15 @@ episode = {
     "scene_id": scene_id,
     "transitions": [...],
     "metrics": {
-        "success": bool,
+        "rl_success": bool,
+        "target_reveal_rate": float,
         "coverage_count": int,
         "coverage_ratio_offline": float,
-        "collisions": int,
-        "decision_steps": int,
-        "return": float,
+        "search_collisions": int,
+        "decision_steps_to_reveal": int,
+        "search_return": float,
+        "target_reached_after_homing": bool,
+        "homing_recovery_count": int,
     },
 }
 ```
@@ -192,9 +207,15 @@ Do not call it the exact KGCRL Fisher estimate.
 
 Implement in this order:
 
-1. `finetune`: Double DQN only
-2. `replay`: Double DQN + selective replay
-3. `ewc`: Double DQN + online EWC
-4. `replay_ewc`: Double DQN + selective replay + online EWC
+1. `finetune`: Double DQN search only
+2. `replay`: Double DQN search + selective replay
+3. `ewc`: Double DQN search + online EWC
+4. `replay_ewc`: Double DQN search + selective replay + online EWC
 
 The final comparison should include at least `finetune` and `replay`. Add `ewc` and `replay_ewc` after the base system is stable.
+
+## Deterministic homing is not part of the RL loss
+
+The homing controller is useful for completing episodes and producing demos, but it is not optimized by the DQN objective.
+
+Report homing metrics separately from RL search metrics. The main continual-learning score should be based on target reveal rate.

@@ -14,7 +14,7 @@ Use these Webots devices:
 
 ## Heading from InertialUnit
 
-Use the Webots `InertialUnit` to estimate robot heading for the policy observation.
+Use the Webots `InertialUnit` to estimate robot heading for the policy observation and deterministic homing.
 Enable it at reset/setup time and read roll, pitch, and yaw with:
 
 ```python
@@ -24,7 +24,7 @@ sin_theta = math.sin(theta)
 cos_theta = math.cos(theta)
 ```
 
-Use `sin_theta` and `cos_theta` as the heading features in the observation vector.
+Use `sin_theta` and `cos_theta` as the heading features in the RL observation vector.
 
 ## Robot constants
 
@@ -48,11 +48,13 @@ where:
 Use two time scales:
 
 - **Controller step:** one Webots simulation update.
-- **Decision step:** one completed macro-action selected by the DQN.
+- **Decision step:** one completed macro-action selected by the DQN during search.
 
-A DQN transition corresponds to one decision step.
+A DQN transition corresponds to one search-phase decision step.
 
-## Initial action set
+After target reveal, deterministic homing may use its own lower-level control loop. Homing controller steps should not be stored as DQN transitions.
+
+## Initial RL action set
 
 Start with:
 
@@ -76,7 +78,7 @@ $$
 
 For the opposite rotation direction, swap the signs.
 
-## Recommended action parameters
+## Recommended RL action parameters
 
 Use:
 
@@ -95,31 +97,85 @@ $$
 \approx 2.04\text{ rad}
 $$
 
-## Macro-action execution
+## Search macro-action execution
 
-A macro-action should:
+A search macro-action should:
 
 1. read current wheel positions,
 2. compute target wheel positions,
 3. command wheel targets,
-4. step the simulator until completion, collision, or timeout,
-5. accumulate low-level rewards if needed,
+4. step the simulator until completion, search-phase collision, target reveal, or timeout,
+5. accumulate search reward,
 6. read GPS, InertialUnit, and proximity sensors,
 7. update visited cells,
-8. return the next observation and transition data.
+8. check whether the target is revealed,
+9. return the next observation and transition data.
 
-## Collision handling
+If target reveal occurs during or after the macro-action, mark the search transition as terminal for DQN training and then run deterministic homing outside the replay buffer.
 
-Initial simple version:
+## Search collision handling
+
+Initial simple version during the RL search phase:
 
 - monitor proximity sensors during macro-action execution,
 - if threshold is exceeded:
   - stop motors,
   - mark collision,
-  - apply collision penalty,
+  - apply search collision penalty,
   - end the macro-action early.
 
 This is safer than letting a forward command continue after impact.
+
+## Deterministic homing controller
+
+After target reveal, stop asking the DQN for actions and call a deterministic homing routine.
+
+Recommended control loop:
+
+```python
+def run_deterministic_homing(max_homing_steps):
+    recovery_count = 0
+
+    for _ in range(max_homing_steps):
+        d, phi = compute_target_distance_and_bearing()
+
+        if d <= goal_radius:
+            stop_motors()
+            return {"target_reached": True, "homing_timeout": False,
+                    "homing_recovery_count": recovery_count}
+
+        if homing_collision_detected():
+            recovery_count += 1
+            simple_homing_recovery()
+            continue
+
+        if abs(phi) > heading_tolerance:
+            rotate_toward(phi)
+        else:
+            move_forward_short()
+
+    stop_motors()
+    return {"target_reached": False, "homing_timeout": True,
+            "homing_recovery_count": recovery_count}
+```
+
+A simple recovery routine can be:
+
+```python
+def simple_homing_recovery():
+    stop_motors()
+    reverse_short_distance()
+    rotate_away_from_strongest_proximity_sensor()
+```
+
+Do not assign RL penalty for homing collisions. Log them separately as homing diagnostics.
+
+Recommended initial homing parameters:
+
+- heading tolerance: `10` to `15` degrees
+- short forward distance: `0.05` to `0.10 m`
+- goal radius: choose smaller than or equal to the reveal radius, for example `0.05` to `0.10 m`
+- homing timeout: fixed number of controller steps or macro-equivalent steps
 
 ## Grid-cell assignment
 
@@ -194,18 +250,32 @@ metrics = env.get_episode_metrics()
 env.close()
 ```
 
+The `done` flag returned to the training loop should become true when the search phase terminates, including successful target reveal or maximum search steps.
+
+If `target_revealed=True`, the environment may internally run deterministic homing before returning final episode metrics, but homing steps should not be inserted into the DQN replay buffer.
+
 The `info` dictionary should include:
 
 ```python
 {
     "scene_id": int,
+    "phase": "search" or "homing_complete",
     "collision": bool,
     "new_cell": bool,
     "revisit": bool,
     "dwell": bool,
     "target_revealed": bool,
+    "rl_success": bool,
     "target_reached": bool,
+    "homing_timeout": bool,
+    "homing_recovery_count": int,
     "cell": (int, int),
     "duration": int,
 }
 ```
+
+Recommended convention:
+
+- `rl_success = target_revealed`
+- `target_reached` is an auxiliary post-reveal metric
+- homing collisions/recoveries are auxiliary diagnostics and do not affect DQN reward
