@@ -18,16 +18,15 @@ def getTarget() -> tuple:
 #########################
 
 from controller import Supervisor
-
-origin = [0, 0, 0] # [x, y, z]
+from .cell_tracking import origin
 
 def resetPosition(robot: Supervisor, x=None, y=None):
     node = robot.getSelf()
     
-    position = origin if x is None or y is None else [x, y, 0]
+    position = origin if x is None or y is None else [x, y]
     
     translation = node.getField('translation')
-    translation.setSFVec3f(position)
+    translation.setSFVec3f([*position, 0])
     node.resetPhysics()
 
 #########################
