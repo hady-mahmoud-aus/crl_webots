@@ -2,7 +2,7 @@ from random import randint
 
 from controller import Supervisor
 
-from utils.actions import action, actionComplete
+from utils.actions import action, actionComplete, turnByAngle, onCollision
 from utils.motors import setVelocityAll
 from utils.layer_0 import onCollision
 from utils.position_related import resetPosition
@@ -50,6 +50,9 @@ start_time = None
 
 #########################
 
+from math import pi
+actions = [0]
+
 # CONTROL LOOP
 while robot.step(timestep) != -1:
 
@@ -71,10 +74,10 @@ while robot.step(timestep) != -1:
             print(f'Current cell: {tracker.current_cell}, {cell_status}')
             print(tracker.getLocalVisitedFlags(verbose=True))
             
-            action_code = randint(0, 2) # generate random action
+            # action_code = randint(0, 2) # generate random action
+            action_code = actions.pop()
             current_target = action(action_code, motors, position_sensors)
 
-    else:
-        if actionComplete(current_target, position_sensors):
-            setVelocityAll(motors, 0.0)
-            current_target = None  # next action
+    elif actionComplete(current_target, position_sensors):
+        setVelocityAll(motors, 0.0)
+        current_target = None  # next action

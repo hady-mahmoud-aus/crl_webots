@@ -2,14 +2,16 @@
 #########################
 
 import random
-from math import dist
+from math import dist, pi, atan2
 
-from .sensors import readGPS
+from .sensors import readGPS, readHeading
 
 
 arena_size = 2;
 buffer = arena_size * 0.05
 reveal_radius = 0.2
+reach_radius = 0.07
+
 
 class TargetManager:
     
@@ -19,22 +21,47 @@ class TargetManager:
         number = lambda : round(random.uniform(-limit, limit), 2)
         return [number(), number()]
 
-    def __init__(self, gps):
+    def __init__(self, gps, inertial_unit):
         self.target = self.getTarget()
         self.gps = gps
+        self.inertial_unit = inertial_unit
         
     def getNewTarget(self):
         self.target = self.getTarget()
         
         return self.target
     
-    def isRevealed(self):
+    def getDistance(self):
         position = readGPS(self.gps)
-        
-        if dist(position, self.target) <= reveal_radius: return True
-        
-        return False
+        return dist(position, self.target) 
+    
+    def isRevealed(self) -> bool:
+        return self.getDistance() <= reveal_radius
+    
+    def isReached(self) -> bool: 
+        return self.getDistance() <= reach_radius
+    
+    def getBearing(self):
+        position = readGPS(self.gps)
 
+        dx = self.target[0] - position[0]
+        dy = self.target[1] - position[1]
+
+        target_angle = atan2(dy, dx)
+        robot_angle = self.inertial_unit.getRollPitchYaw()[2]
+
+        bearing = target_angle - robot_angle
+
+        while bearing > pi:
+            bearing -= 2 * pi
+
+        while bearing < -pi:
+            bearing += 2 * pi
+
+        return bearing
+    
+    def __str__(self):
+        return f'Target: {self.target}'
 
 #########################
 
@@ -43,7 +70,7 @@ class TargetManager:
 #########################
 
 from controller import Supervisor
-from .cell_tracking import origin
+from .cell_tracker import origin
 
 def resetPosition(robot: Supervisor, x=None, y=None):
     node = robot.getSelf()
