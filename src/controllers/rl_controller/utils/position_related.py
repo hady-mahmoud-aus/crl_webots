@@ -4,11 +4,15 @@
 import random
 from math import dist, pi, atan2
 
+from .cell_tracker import origin
 from .sensors import readGPS, readHeading
 
 
-arena_size = 2;
+arena_size = 1.4;
 buffer = arena_size * 0.05
+
+min_distance_from_origin = 0.3
+
 reveal_radius = 0.2
 reach_radius = 0.07
 
@@ -16,10 +20,14 @@ reach_radius = 0.07
 class TargetManager:
     
     def getTarget(self) -> list:
-        limit = (arena_size / 2) - buffer # so target is not on a wall
+        limit = (arena_size / 2) - buffer  # so target is not on a wall
+        number = lambda: round(random.uniform(-limit, limit), 2)
 
-        number = lambda : round(random.uniform(-limit, limit), 2)
-        return [number(), number()]
+        while True:
+            target = [number(), number()]
+
+            if dist(origin, target) >= min_distance_from_origin:
+                return target
 
     def __init__(self, gps, inertial_unit):
         self.target = self.getTarget()
@@ -70,7 +78,6 @@ class TargetManager:
 #########################
 
 from controller import Supervisor
-from .cell_tracker import origin
 
 def resetPosition(robot: Supervisor, x=None, y=None):
     node = robot.getSelf()
@@ -79,6 +86,10 @@ def resetPosition(robot: Supervisor, x=None, y=None):
     
     translation = node.getField('translation')
     translation.setSFVec3f([*position, 0])
+    
+    rotation = node.getField('rotation')
+    rotation.setSFRotation([0, 0, 1, 0])
+    
     node.resetPhysics()
 
 #########################

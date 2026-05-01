@@ -1,0 +1,39 @@
+import pandas as pd
+from pathlib import Path
+from typing import Literal
+
+project_root = Path('C:/dev/AI Project/CRL')
+
+def getSaveDirectory(
+    policy: Literal[
+        'random', 
+        'dqn', 
+        'dqn_replay',
+        'dqn_ewc',
+        'dqn_replay_ewc'
+        ]
+    ):
+    
+    path = project_root / 'runs' / policy
+    path.mkdir(parents=True, exist_ok=True)
+    
+    return path
+
+episode_dict = {
+    'episode': pd.NA,
+    'scene_id': pd.NA,
+    'seed': pd.NA,
+
+    'revealed': False,
+    'reached': False,
+    'timeout_before_reveal': False,
+
+    'unique_cells_covered': pd.NA,
+    'reward': pd.NA,
+    'collisions': pd.NA,
+    'decision_steps': pd.NA,
+    }
+
+def getEpisodeDataFrame():
+    return pd.DataFrame(columns=episode_dict.keys())
+

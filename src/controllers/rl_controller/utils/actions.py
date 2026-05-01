@@ -119,12 +119,12 @@ def reverse(motors: dict, position_sensors: dict):
     return targets
 
 
-def onCollision(distance_sensors: dict, position_sensors: dict,  motors: dict) -> dict: 
+def onCollision(motors: dict, position_sensors: dict, distance_sensors: dict, react: bool = True) -> dict: 
     front_sensors = {name: sensor for name, sensor in distance_sensors.items() if name in front_sensor_names}
     distance_readings = readSensors(front_sensors, "distance")
     
     if any(value >= collision_value for value in distance_readings):
-        return reverse(motors, position_sensors)
+        return reverse(motors, position_sensors) if react else True
     
     return None
 
@@ -134,11 +134,11 @@ def onCollision(distance_sensors: dict, position_sensors: dict,  motors: dict) -
 # VARIABLE ACTIONS
 #########################
 def getTurnWheelRadians(angle_radians: float):
-    return turn_radians * (angle_radians / pi / 2)
+    return turn_radians * (angle_radians / (pi / 2))
 
 def turnByAngle(angle_radians: float, motors: dict, position_sensors: dict, threshold=None):
     if threshold:
-        if angle_radians < threshold: return None
+        if abs(angle_radians) < threshold: return None
     
     setVelocityAll(motors, turn_velocity)
 

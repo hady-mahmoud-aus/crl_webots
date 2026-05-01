@@ -11,7 +11,7 @@ origin = (0, 0)  # [x, y] | fixed for now
 #########################
 
 
-class GridTracker:
+class CellTracker:
     CELL_SAME = 'same'
     CELL_UNVISITED = 'unvisited'
     CELL_VISITED = 'visited'
@@ -79,14 +79,20 @@ class GridTracker:
         right = (i + dy, j - dx)
         left = (i - dy, j + dx)
         back = (i - dx, j - dy)
+        
+        front = int(front in self.visited_cells)
+        right = int(right in self.visited_cells)
+        left = int(left in self.visited_cells)
+        back = int(back in self.visited_cells)
+        
 
         if not verbose: return[front, right, left, back]
         
         return {
-            "front": int(front in self.visited_cells),
-            "right": int(right in self.visited_cells),
-            "left": int(left in self.visited_cells),
-            "back": int(back in self.visited_cells),
+            "front": front,
+            "right": right,
+            "left": left,
+            "back": back,
         }
 
     def getCoverage(self):

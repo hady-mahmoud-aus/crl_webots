@@ -69,7 +69,7 @@ Implement:
 
 Success criterion:
 
-- policy improves on $T_1$ compared with random using target reveal rate, decision steps to reveal, coverage, or search return.
+- policy improves on $T_1$ compared with random using target reveal rate, coverage, or search return.
 
 ---
 
