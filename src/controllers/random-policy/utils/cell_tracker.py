@@ -31,10 +31,7 @@ class GridTracker:
             return int(ceil(value - 0.5))
 
     def gpsToCell(self):
-        gps_reading = readGPS(self.gps)
-
-        x = gps_reading["x"]
-        y = gps_reading["y"]
+        x, y = readGPS(self.gps)
 
         dx = x - self.origin[0]
         dy = y - self.origin[1]
@@ -58,11 +55,11 @@ class GridTracker:
 
         return self.CELL_VISITED
 
-    def getLocalVisitedFlags(self):
+    def getLocalVisitedFlags(self, verbose=False):
         heading = readHeading(self.inertial_unit)
 
-        sin_theta = heading["sin"]
-        cos_theta = heading["cos"]
+        sin_theta = heading[0]
+        cos_theta = heading[1]
 
         i, j = self.current_cell
 
@@ -79,14 +76,16 @@ class GridTracker:
             dy = sign(sin_theta)
 
         front = (i + dx, j + dy)
-        back = (i - dx, j - dy)
-        left = (i - dy, j + dx)
         right = (i + dy, j - dx)
+        left = (i - dy, j + dx)
+        back = (i - dx, j - dy)
 
+        if not verbose: return[front, right, left, back]
+        
         return {
             "front": int(front in self.visited_cells),
-            "left": int(left in self.visited_cells),
             "right": int(right in self.visited_cells),
+            "left": int(left in self.visited_cells),
             "back": int(back in self.visited_cells),
         }
 

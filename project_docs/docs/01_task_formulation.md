@@ -164,7 +164,7 @@ Recommended starting values:
 - $r_{rev}=0.1$
 - $r_{coll}=1.0$
 - $r_{dwell}=0.1$
-- $r_{reveal}=5.0$
+- $r_{reveal}=10.0$
 
 The reward is for revealing the target, not for reaching it during deterministic homing.
 

@@ -28,15 +28,15 @@ turn_velocity = 3
 def forward(motors: dict, position_sensors: dict):
     setVelocityAll(motors, forward_velocity)
     
-    readings = readSensors(position_sensors)
+    readings = readSensors(position_sensors, verbose=True)
     
     targets = {
-        "left": readings["left"] + forward_step_radians,
-        "right": readings["right"] + forward_step_radians
+        "right": readings["right"] + forward_step_radians,
+        "left": readings["left"] + forward_step_radians
     }
 
-    motors["left"].setPosition(targets["left"])
     motors["right"].setPosition(targets["right"])
+    motors["left"].setPosition(targets["left"])
     
     return targets
 
@@ -44,7 +44,7 @@ def forward(motors: dict, position_sensors: dict):
 def right(motors: dict, position_sensors: dict):
     setVelocityAll(motors, turn_velocity)
     
-    readings = readSensors(position_sensors)
+    readings = readSensors(position_sensors, verbose=True)
     
     targets = {
         "right": readings["right"] - turn_radians,
@@ -60,7 +60,7 @@ def right(motors: dict, position_sensors: dict):
 def left(motors: dict, position_sensors: dict):
     setVelocityAll(motors, turn_velocity)
     
-    readings = readSensors(position_sensors)
+    readings = readSensors(position_sensors, verbose=True)
     
     targets = {
         "right": readings["right"] + turn_radians,
@@ -80,7 +80,7 @@ def action(action_code: int, motors: dict, position_sensors: dict):
 
 
 def actionComplete(targets: dict, position_sensors: dict, tolerance=0.02):
-    readings = readSensors(position_sensors)
+    readings = readSensors(position_sensors, verbose=True)
 
     for name, target in targets.items():
         current = readings[name]

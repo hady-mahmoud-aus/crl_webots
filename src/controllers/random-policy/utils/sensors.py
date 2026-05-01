@@ -1,4 +1,6 @@
 from controller import Robot
+
+from typing import Literal
 from math import sin, cos
 
 front_sensor_names = ['ps0', 'ps7']
@@ -17,14 +19,19 @@ def getPositionSensors(robot: Robot) -> dict:
 
 
 
-
 def enableSensors(sensors: dict, sampling_period):
     for sensor in sensors.values():
         sensor.enable(sampling_period)
 
 
-def readSensors(sensors: dict, type = None):
-    readings = {}
+
+def readSensors(sensors: dict, type: Literal["distance"] = None, verbose=False):
+    
+    def minMax(x, min, max):
+        return (x - min) / (max - min)
+    
+    readings = {} if verbose else []
+    
     for name, sensor in sensors.items():
         if type == "distance":
             min, max = 50, 1800
@@ -32,25 +39,33 @@ def readSensors(sensors: dict, type = None):
             
         else: reading = sensor.getValue()
         
-        readings[name] = reading
+        if not verbose:
+            readings.append(reading)
+            
+        else: readings[name] = reading
     
     return readings
 
-def minMax(x, min, max):
-    return (x - min) / (max - min)
 
-
-def readGPS(gps) -> dict:
-    axes = ['x', 'y']
+def readGPS(gps, verbose=False):
     reading = gps.getValues()[:2]
+    
+    if not verbose: return reading
+    
+    axes = ['x', 'y']
     
     return {axis: clean_zero(value) for axis, value in zip(axes, reading)}
 
 
-def readHeading(inertial_unit) -> dict:
+def readHeading(inertial_unit, verbose=False):
     theta =  inertial_unit.getRollPitchYaw()[2]
     
-    return {"sin": clean_zero(sin(theta)), "cos": clean_zero(cos(theta))}
+    sin_theta = clean_zero(sin(theta))
+    cos_theta = clean_zero(cos(theta))
+    
+    if not verbose: return [sin_theta, cos_theta]
+    
+    return {"sin(theta)": sin_theta, "cos(theta)": cos_theta}
 
 def clean_zero(value, eps=1e-9): # -0.0000 -> 0 | stabilizes readings at boundaries
     if abs(value) < eps:

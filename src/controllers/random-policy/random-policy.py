@@ -3,10 +3,11 @@ from random import randint
 from controller import Supervisor
 
 from utils.actions import action, actionComplete
-from utils.sensors import getDistanceSensors, getPositionSensors, enableSensors
-from utils.motors import getMotors, setVelocityAll
-from utils.layer_0 import onCollision, resetPosition
-from utils.cell_tracking import GridTracker
+from utils.motors import setVelocityAll
+from utils.layer_0 import onCollision
+from utils.position_related import resetPosition
+from utils.cell_tracker import GridTracker
+from utils.component_manager import ComponentManager
 
 
 robot = Supervisor()
@@ -15,21 +16,23 @@ timestep = int(robot.getBasicTimeStep())
 # SENSOR / ACTUATOR INITIALIZATION
 #########################
 
-distance_sensors = getDistanceSensors(robot)
-enableSensors(distance_sensors, timestep)
+component_manager = ComponentManager(
+    robot, timestep, 
+    distance=True, 
+    position=True, 
+    gps=True, 
+    inertial_unit=True, 
+    motors=True
+    ).enable()
 
-position_sensors = getPositionSensors(robot)
-enableSensors(position_sensors, timestep)
-
-gps = robot.getDevice('gps')
-gps.enable(timestep)
-
-inertial_unit = robot.getDevice('inertial unit')
-inertial_unit.enable(timestep)
-
-motors = getMotors(robot)
+distance_sensors = component_manager['distance']
+position_sensors = component_manager['position']
+gps = component_manager['gps']
+inertial_unit = component_manager['inertial_unit']
+motors = component_manager['motors']
 
 #########################
+
 
 # OBJECT INITIALIZATION
 #########################
@@ -66,7 +69,7 @@ while robot.step(timestep) != -1:
         else:
             cell_status = tracker.checkCell() # current cell status
             print(f'Current cell: {tracker.current_cell}, {cell_status}')
-            print(tracker.getLocalVisitedFlags())
+            print(tracker.getLocalVisitedFlags(verbose=True))
             
             action_code = randint(0, 2) # generate random action
             current_target = action(action_code, motors, position_sensors)

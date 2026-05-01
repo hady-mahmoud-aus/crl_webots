@@ -1,37 +1,3 @@
-# Target Generation
-#########################
-
-import random
-
-arena_size = 2;
-
-def getTarget() -> tuple:
-    limit = (arena_size / 2) - 0.1 # so target is not on a wall
-    
-    number = lambda : round(random.uniform(-limit, limit), 2)
-    return (number(), number())
-
-#########################
-
-
-# Episode Position Reset
-#########################
-
-from controller import Supervisor
-from .cell_tracking import origin
-
-def resetPosition(robot: Supervisor, x=None, y=None):
-    node = robot.getSelf()
-    
-    position = origin if x is None or y is None else [x, y]
-    
-    translation = node.getField('translation')
-    translation.setSFVec3f([*position, 0])
-    node.resetPhysics()
-
-#########################
-
-
 # Collision handling (needs refinement for practical use)
 #########################
 
@@ -42,7 +8,7 @@ from .motors import setVelocityAll
 def reverse(motors: dict, position_sensors: dict):
     setVelocityAll(motors, forward_velocity / 2)
 
-    readings = readSensors(position_sensors)
+    readings = readSensors(position_sensors, verbose=True)
 
     reverse_radians = forward_step_radians * 0.25
 
@@ -59,7 +25,7 @@ def reverse(motors: dict, position_sensors: dict):
 
 def onCollision(distance_sensors: dict, position_sensors: dict,  motors: dict) -> dict: 
     front_sensors = {name: sensor for name, sensor in distance_sensors.items() if name in front_sensor_names}
-    distance_readings = readSensors(front_sensors, "distance").values()
+    distance_readings = readSensors(front_sensors, "distance")
     
     if any(value >= collision_value for value in distance_readings):
         return reverse(motors, position_sensors)
