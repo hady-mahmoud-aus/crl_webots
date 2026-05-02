@@ -1,6 +1,6 @@
 import torch
 
-from .sensors import readSensors, readHeading
+from .sensor_actuator.sensors import readSensors, readHeading
 from .cell_tracker import CellTracker
 
 
@@ -19,7 +19,7 @@ def getReward(cell_status, collision=0, dwell_steps=0, is_revealed=0):
             c_status = 1.0
 
         case CellTracker.CELL_VISITED:
-            c_status = -0.1
+            c_status = -0.1 # try -0.05, try -0.2
 
         case CellTracker.CELL_SAME:
             c_status = 0.0

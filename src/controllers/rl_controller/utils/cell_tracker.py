@@ -1,6 +1,6 @@
 from math import ceil, floor
 
-from .sensors import readGPS, readHeading
+from .sensor_actuator.sensors import readGPS, readHeading
 
 # CONSTANTS
 #########################

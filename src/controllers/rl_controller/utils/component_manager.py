@@ -1,6 +1,6 @@
 from controller import Supervisor
-from .sensors import getDistanceSensors, getPositionSensors, enableSensors
-from .motors import getMotors
+from .sensor_actuator.sensors import getDistanceSensors, getPositionSensors, enableSensors
+from .sensor_actuator.motors import getMotors
 
 
 class ComponentManager:

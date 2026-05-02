@@ -10,7 +10,9 @@ from .actions import action, actionComplete, onCollision, reverse, forward_step_
 from .sensor_actuator.motors import setVelocityAll
 from .rl_helper import getObservation, getReward
 from .sensor_actuator.logger import episode_dict
-from rl_specific.buffer import ReplayBuffer
+
+from .rl_specific.buffer import ReplayBuffer
+from .rl_specific.dqn_manager import DQnManager
 
 
 # assuming optimal row-sweeping search
@@ -19,9 +21,10 @@ calculated_max_steps = int((cells_per_row ** 2) + (2 * cells_per_row))
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-class RandomPolicy:
+class DQnPolicy:
     def __init__(
         self, 
+        dqn_manager: DQnManager,
         component_manager: ComponentManager,  
         target_manager: TargetManager,  
         max_steps = float('inf')
@@ -32,6 +35,8 @@ class RandomPolicy:
         self.motors = component_manager['motors']
         self.inertial_unit = component_manager['inertial_unit']
         gps = component_manager['gps']
+        
+        self.dqn_manager = dqn_manager
         
         self.cell_tracker = CellTracker(gps, self.inertial_unit)
         self.target_manager = target_manager
@@ -45,7 +50,7 @@ class RandomPolicy:
         
         self.current_target = None
         
-        self.buffer = ReplayBuffer(capacity=10000)   
+        self.buffer = ReplayBuffer(capacity=10000, min_transitions=500)   
         
         # used for tracking current and previous state, such that transition contains (s_t, s_t+1)
         self.states = deque(maxlen=2)
@@ -76,8 +81,12 @@ class RandomPolicy:
                 if self.addTransition(cell_status): # if terminal state
                     return self.endEpisode()
             else: self.is_collision = 0    
+            
+            if len(self.buffer) >= self.buffer.min_transitions: 
+                self.dqn_manager.optimizeModel(self.buffer)
+                self.dqn_manager.softUpdate()
                 
-            self.action_code = random.randint(0, 2) # generate random action
+            self.action_code = self.dqn_manager.getAction(state.unsqueeze(dim=0))
             self.current_target = action(self.action_code, self.motors, self.position_sensors)
             
             # for transition storage

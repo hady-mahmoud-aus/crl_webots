@@ -2,9 +2,11 @@ from controller import Supervisor
 
 from utils.component_manager import ComponentManager
 from utils.position_related import TargetManager
-from utils.random_policy import RandomPolicy, calculated_max_steps
 from utils.homing import HomingBehaviour
-from utils.logger import getEpisodeDataFrame, getSaveDirectory
+from utils.sensor_actuator.logger import getEpisodeDataFrame, getSaveDirectory
+
+from utils.rl_specific.dqn_manager import DQnManager
+from utils.dqn_policy import DQnPolicy, calculated_max_steps
 
 
 robot = Supervisor()
@@ -33,14 +35,16 @@ inertial_unit = component_manager['inertial_unit']
 
 target_manager = TargetManager(gps, inertial_unit)
 episode_df = getEpisodeDataFrame()
-policy_manager = RandomPolicy(component_manager, target_manager, calculated_max_steps)
 homing_behaviour = HomingBehaviour(robot, component_manager, target_manager, episode_df)
+
+dqn_manager = DQnManager()
+dqn_policy = DQnPolicy(dqn_manager, component_manager, target_manager, calculated_max_steps)
 
 #########################
 
 
 scene_id = 0
-num_episodes = 50
+num_episodes = 2000
 seed = 42
 
 episode_iterator = iter(range(num_episodes))
@@ -55,7 +59,7 @@ while robot.step(timestep) != -1:
     
     # rl search phase    
     if not is_revealed:
-        episode_dict = policy_manager.runEpisode(current_episode, seed, scene_id)
+        episode_dict = dqn_policy.runEpisode(current_episode, seed, scene_id)
         
         if episode_dict:
             if episode_dict['timeout_before_reveal']:
@@ -82,7 +86,7 @@ while robot.step(timestep) != -1:
         except StopIteration:
             print("Training Complete")
             
-            save_dir = getSaveDirectory(policy='random')
+            save_dir = getSaveDirectory(policy='dqn')
             filename = f'{scene_id}-{num_episodes}-{seed}.csv'
             episode_df.to_csv(save_dir / filename)
             

@@ -1,7 +1,7 @@
 from math import pi
 
-from .sensors import readSensors
-from .motors import setVelocityAll
+from .sensor_actuator.sensors import readSensors
+from .sensor_actuator.motors import setVelocityAll
 
 # CONSTANTS
 #########################
@@ -98,7 +98,7 @@ def actionComplete(targets: dict, position_sensors: dict, tolerance=0.02):
 # Collision handling 
 #########################
 
-from .sensors import collision_value, front_sensor_names
+from .sensor_actuator.sensors import collision_value, front_sensor_names
 
 
 def reverse(motors: dict, position_sensors: dict):

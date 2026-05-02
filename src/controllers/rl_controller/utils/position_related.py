@@ -5,7 +5,7 @@ import random
 from math import dist, pi, atan2
 
 from .cell_tracker import origin
-from .sensors import readGPS, readHeading
+from .sensor_actuator.sensors import readGPS
 
 
 arena_size = 1.4;

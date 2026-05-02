@@ -1,12 +1,11 @@
 from math import pi
 import pandas as pd
-from copy import deepcopy
 from controller import Supervisor
 
 from .actions import turnByAngle, forwardByDistance, actionComplete
 from .position_related import TargetManager
 from .component_manager import ComponentManager
-from .motors import setVelocityAll
+from .sensor_actuator.motors import setVelocityAll
 from .position_related import resetPosition
 
 
