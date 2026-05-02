@@ -17,7 +17,7 @@ from .rl_specific.dqn_manager import DQnManager
 
 # assuming optimal row-sweeping search
 cells_per_row = arena_size / forward_step_length
-calculated_max_steps = int((cells_per_row ** 2) + (2 * cells_per_row))
+calculated_max_steps = int((cells_per_row ** 2) + (6 * cells_per_row))
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 

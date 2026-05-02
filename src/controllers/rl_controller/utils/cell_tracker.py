@@ -6,7 +6,7 @@ from .sensor_actuator.sensors import readGPS, readHeading
 #########################
 
 cell_size = 0.1
-origin = (0, 0)  # [x, y] | fixed for now
+origin = (-0.9, 0)  # [x, y] | fixed for now
 
 #########################
 

@@ -8,13 +8,13 @@ from .cell_tracker import origin
 from .sensor_actuator.sensors import readGPS
 
 
-arena_size = 1.4;
+arena_size = 2;
 buffer = arena_size * 0.05
 
 min_distance_from_origin = 0.3
 
 reveal_radius = 0.2
-reach_radius = 0.07
+reach_radius = 0.09
 
 
 class TargetManager:
