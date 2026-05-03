@@ -102,13 +102,15 @@ class DQnPolicy:
             self.steps += 1
         
         
-        # interrupts mid-action in case of collision
-        elif (not self.is_collision) and\
+        # interrupts mid-forward action in case of collision;
+        elif not self.is_collision and\
+            self.action_code == 0 and\
             onCollision(self.motors, self.position_sensors, self.distance_sensors, react=False):
+                
             setVelocityAll(self.motors, 0)
             
             # block cell if collided into after forward motion
-            if self.action_code == 0: self.cell_tracker.blockForward()
+            self.cell_tracker.blockForward()
                 
             self.is_collision = 1
             self.collisions += 1
@@ -153,8 +155,12 @@ class DQnPolicy:
             print('Target revealed')
             self.episode_dict['revealed'] = True
         
+        # if all surrounding cells are visited, remove revisit penalty to prevent getting stuck
+        flags = self.states[0][:4]
+        escape_mode = all(int(f) == 1 for f in flags)
+        
         # calculate reward        
-        reward = getReward(cell_status, self.is_collision, dwell, int(revealed))
+        reward = getReward(cell_status, self.is_collision, dwell, int(revealed), escape_mode)
         self.total_reward += reward
         
         # reset collision state

@@ -5,12 +5,12 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.004603059310227588 0.9999463990880224 -0.00927420055226891 0.9208418141617704
-  position -2.983589034760926 -0.035925571151647184 3.922238409965216
+  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944
+  position 0.21168190736989662 -0.24969828009156214 5.009301855824953
 }
 Background {
   skyColor [
-    0.4 0.7 1
+    0.352941 0.698039 1
   ]
 }
 RectangleArena {
@@ -18,7 +18,7 @@ RectangleArena {
   floorTileSize 0.2 0.2
 }
 Robot {
-  translation -0.9 0 0
+  translation 0 -0.9 0
   children [
     InertialUnit {
     }
