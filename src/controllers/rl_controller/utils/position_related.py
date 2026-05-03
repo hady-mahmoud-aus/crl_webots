@@ -14,7 +14,7 @@ buffer = arena_size * 0.05
 min_distance_from_origin = 0.6
 
 reveal_radius = 0.35
-reach_radius = 0.1
+reach_radius = 0.15
 
 
 class TargetManager:

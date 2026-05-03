@@ -31,7 +31,7 @@ inertial_unit = component_manager['inertial_unit']
 # EXPERIMENT PARAMETERS
 #########################
 
-scene_id = 0
+scene_id = 1
 num_episodes = 1000
 seed = 42
 policy = 'dqn'
