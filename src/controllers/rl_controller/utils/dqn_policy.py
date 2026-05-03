@@ -83,8 +83,11 @@ class DQnPolicy:
                 obs_dwell = self.dwell_count
             
             else: obs_dwell = 0
+            
+            # small-loop handling
+            loop_score = self.cell_tracker.getLoopScore()
                 
-            state = getObservation(self.distance_sensors, self.inertial_unit, self.cell_tracker, obs_dwell)
+            state = getObservation(self.distance_sensors, self.inertial_unit, self.cell_tracker, obs_dwell, loop_score)
             self.states.append(state)
             
             # in case of collision, transition already added
@@ -159,8 +162,10 @@ class DQnPolicy:
         flags = self.states[0][:4]
         escape_mode = all(int(f) == 1 for f in flags)
         
+        loop_score = self.cell_tracker.getLoopScore()
+        
         # calculate reward        
-        reward = getReward(cell_status, self.is_collision, dwell, int(revealed), escape_mode)
+        reward = getReward(cell_status, self.is_collision, dwell, int(revealed), loop_score, escape_mode)
         self.total_reward += reward
         
         # reset collision state

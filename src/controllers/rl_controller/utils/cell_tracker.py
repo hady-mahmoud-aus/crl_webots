@@ -1,4 +1,5 @@
 from math import ceil, floor
+from collections import deque
 
 from .sensor_actuator.sensors import readGPS, readHeading
 
@@ -10,9 +11,12 @@ origin = (0, -0.9)  # [x, y] | fixed for now
 
 #########################
 
+# for escaping small loops
+loop_window_length = 8
 
 class CellTracker:
     CELL_SAME = 'same'
+    CELL_RECENT = 'recent'
     CELL_UNVISITED = 'unvisited'
     CELL_VISITED = 'visited'
 
@@ -22,8 +26,12 @@ class CellTracker:
 
         self.origin = origin
         self.current_cell = (0, 0)
+        
         self.visited_cells = {self.current_cell}
         self.blocked_cells = set()
+        
+        self.recent_cells = deque(maxlen=loop_window_length)
+        self.recent_cells.append(self.current_cell)
 
     def roundToNearestCell(self, value):
         if value >= 0:
@@ -44,16 +52,22 @@ class CellTracker:
 
     def checkCell(self) -> str:
         index = self.gpsToCell()
-
+        
         if index == self.current_cell:
             return self.CELL_SAME
-
+        
+        was_recent = index in self.recent_cells
+        self.recent_cells.append(index)
+        
         self.current_cell = index
 
         if index not in self.visited_cells:
             self.visited_cells.add(index)
             return self.CELL_UNVISITED
 
+        if was_recent:
+            return self.CELL_RECENT
+        
         return self.CELL_VISITED
 
     def getLocalVisitedFlags(self, verbose=False):
@@ -80,6 +94,11 @@ class CellTracker:
             "left": left,
             "back": back,
         }
+        
+    # if robot is stuck in a closed loop of cells; high score -> worse
+    def getLoopScore(self):
+        n_unique = len(set(self.recent_cells)) 
+        return 1 - (n_unique / len(self.recent_cells)) 
     
     def blockForward(self):
         i, j = self.current_cell
@@ -96,7 +115,10 @@ class CellTracker:
     def reset(self):
         self.current_cell = (0, 0)
         self.visited_cells = {self.current_cell}
-        self.blocked_cells = set()
+        self.blocked_cells.clear()
+        
+        self.recent_cells.clear()
+        self.recent_cells.append(self.current_cell)
         
     def getDiscreteHeading(self):
         
