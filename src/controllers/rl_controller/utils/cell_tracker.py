@@ -12,7 +12,7 @@ origin = (0, -0.9)  # [x, y] | fixed for now
 #########################
 
 # for escaping small loops
-loop_window_length = 8
+loop_window_length = 4
 
 class CellTracker:
     CELL_SAME = 'same'

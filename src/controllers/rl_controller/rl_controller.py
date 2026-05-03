@@ -33,8 +33,9 @@ inertial_unit = component_manager['inertial_unit']
 #########################
 
 scene_id = 0
-num_episodes = 2000
+num_episodes = 2
 seed = 42
+policy = 'dqn'
 
 #########################
 
@@ -90,11 +91,17 @@ while robot.step(timestep) != -1:
             is_reached = False
             
         except StopIteration:
-            print("Training Complete")
+            print('Training Complete')
             
-            save_dir = getSaveDirectory(policy='dqn')
-            filename = f'{scene_id}-{num_episodes}-{seed}.csv'
-            episode_df.to_csv(save_dir / filename)
+            save_dir = getSaveDirectory(policy)
+            
+            logs_filename = f'data-{scene_id}-{num_episodes}-{seed}.csv'
+            episode_df.to_csv(save_dir / logs_filename)
+            
+            model_filename = f'params-{scene_id}-{num_episodes}-{seed}.pt'
+            dqn_manager.saveModel(save_dir / model_filename)
+            
+            print(f'Training logs and model parameters saved to {save_dir}')
             
             robot.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)
             break

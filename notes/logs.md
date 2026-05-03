@@ -9,3 +9,4 @@
 
 - make revisit penalty 0 when all surrounding cells are visited: Success
     loops less likely, but still happenning
+- added loop-score to observation and reward: Success
