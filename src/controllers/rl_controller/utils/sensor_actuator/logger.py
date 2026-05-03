@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from typing import Literal
+import random, torch, numpy
 
 project_root = Path('C:/dev/AI Project/CRL')
 
@@ -37,3 +38,7 @@ episode_dict = {
 def getEpisodeDataFrame():
     return pd.DataFrame(columns=episode_dict.keys())
 
+def setAllSeeds(seed):
+    random.seed(seed)
+    numpy.random.seed(seed)
+    torch.manual_seed(seed)

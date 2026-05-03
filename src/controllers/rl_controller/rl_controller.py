@@ -3,7 +3,7 @@ from controller import Supervisor
 from utils.component_manager import ComponentManager
 from utils.position_related import TargetManager
 from utils.homing import HomingBehaviour
-from utils.sensor_actuator.logger import getEpisodeDataFrame, getSaveDirectory
+from utils.sensor_actuator.logger import getEpisodeDataFrame, getSaveDirectory, setAllSeeds
 
 from utils.rl_specific.dqn_manager import DQnManager
 from utils.dqn_policy import DQnPolicy, calculated_max_steps
@@ -29,6 +29,16 @@ inertial_unit = component_manager['inertial_unit']
 
 #########################
 
+# EXPERIMENT PARAMETERS
+#########################
+
+scene_id = 0
+num_episodes = 2000
+seed = 42
+
+#########################
+
+setAllSeeds(seed)
 
 # OBJECT INITIALIZATION
 #########################
@@ -42,10 +52,6 @@ dqn_policy = DQnPolicy(dqn_manager, component_manager, target_manager, calculate
 
 #########################
 
-
-scene_id = 0
-num_episodes = 2000
-seed = 42
 
 episode_iterator = iter(range(num_episodes))
 current_episode = next(episode_iterator)

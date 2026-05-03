@@ -14,7 +14,7 @@ EPS_START = 0.9
 EPS_END = 0.01
 EPS_DECAY = 2500
 
-n_observations = 14
+n_observations = 15
 n_actions = 3
 action_space = [0, 1, 2]
 
@@ -48,7 +48,7 @@ class DQnManager:
         return random.randint(0, 2)
 
 
-    def optimizeModel(self, buffer):
+    def optimizeModel(self, buffer: ReplayBuffer):
         # Sample a random minibatch from replay memory
         transitions = buffer.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
