@@ -23,6 +23,7 @@ class CellTracker:
         self.origin = origin
         self.current_cell = (0, 0)
         self.visited_cells = {self.current_cell}
+        self.blocked_cells = set()
 
     def roundToNearestCell(self, value):
         if value >= 0:
@@ -56,34 +57,19 @@ class CellTracker:
         return self.CELL_VISITED
 
     def getLocalVisitedFlags(self, verbose=False):
-        heading = readHeading(self.inertial_unit)
-
-        sin_theta = heading[0]
-        cos_theta = heading[1]
-
+        
         i, j = self.current_cell
-
-        def sign(value):
-            if value >= 0:
-                return 1
-            return -1
-
-        if abs(cos_theta) > abs(sin_theta):
-            dx = sign(cos_theta)
-            dy = 0
-        else:
-            dx = 0
-            dy = sign(sin_theta)
+        dx, dy = self.getDiscreteHeading()
 
         front = (i + dx, j + dy)
         right = (i + dy, j - dx)
         left = (i - dy, j + dx)
         back = (i - dx, j - dy)
         
-        front = int(front in self.visited_cells)
-        right = int(right in self.visited_cells)
-        left = int(left in self.visited_cells)
-        back = int(back in self.visited_cells)
+        front = int((front in self.visited_cells) or (front in self.blocked_cells))
+        right = int((right in self.visited_cells) or (right in self.blocked_cells))
+        left = int((left in self.visited_cells) or (left in self.blocked_cells))
+        back = int((back in self.visited_cells) or (back in self.blocked_cells))
         
 
         if not verbose: return[front, right, left, back]
@@ -94,6 +80,15 @@ class CellTracker:
             "left": left,
             "back": back,
         }
+    
+    def blockForward(self):
+        i, j = self.current_cell
+        dx, dy = self.getDiscreteHeading()
+        
+        front = (i + dx, j + dy)
+        
+        self.blocked_cells.add(front)
+        
 
     def getCoverage(self):
         return len(self.visited_cells)
@@ -101,3 +96,26 @@ class CellTracker:
     def reset(self):
         self.current_cell = (0, 0)
         self.visited_cells = {self.current_cell}
+        self.blocked_cells = set()
+        
+    def getDiscreteHeading(self):
+        
+        def sign(value):
+            if value >= 0:
+                return 1
+            return -1
+        
+        heading = readHeading(self.inertial_unit)
+
+        sin_theta = heading[0]
+        cos_theta = heading[1]
+
+        if abs(cos_theta) > abs(sin_theta):
+            dx = sign(cos_theta)
+            dy = 0
+        else:
+            dx = 0
+            dy = sign(sin_theta)
+            
+        return (dx, dy)
+        

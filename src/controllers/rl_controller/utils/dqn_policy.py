@@ -98,6 +98,9 @@ class DQnPolicy:
         elif (not self.is_collision) and\
             onCollision(self.motors, self.position_sensors, self.distance_sensors, react=False):
             setVelocityAll(self.motors, 0)
+            
+            # block cell if collided into after forward motion
+            if self.action_code == 0: self.cell_tracker.blockForward()
                 
             self.is_collision = 1
             self.collisions += 1
