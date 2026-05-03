@@ -14,7 +14,7 @@ EPS_START = 0.9
 EPS_END = 0.01
 EPS_DECAY = 2500
 
-n_observations = 16
+n_observations = 19
 n_actions = 3
 action_space = [0, 1, 2]
 

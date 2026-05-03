@@ -1,11 +1,11 @@
-import random
+from controller import Supervisor
 from collections import deque, namedtuple
 from copy import deepcopy
 from typing import Literal
 
 from .cell_tracker import CellTracker
 from .component_manager import ComponentManager
-from .position_related import TargetManager, arena_size
+from .position_related import TargetManager, arena_size, resetPosition
 from .actions import action, actionComplete, onCollision, forward_step_length
 from .sensor_actuator.motors import setVelocityAll
 from .rl_helper import getObservation, getReward
@@ -24,11 +24,13 @@ Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'
 class DQnPolicy:
     def __init__(
         self, 
+        robot: Supervisor,
         dqn_manager: DQnManager,
         component_manager: ComponentManager,  
         target_manager: TargetManager,  
-        max_steps = float('inf')
+        max_steps = float('inf'),
         ):
+        self.robot = robot
         
         self.distance_sensors = component_manager['distance']
         self.position_sensors = component_manager['position']
@@ -55,11 +57,20 @@ class DQnPolicy:
         # used for tracking current and previous state, such that transition contains (s_t, s_t+1)
         self.states = deque(maxlen=2)
         self.action_code = None
+        self.previous_distance = 0
+        
+        self.homing = False
 
 
 
-    def runEpisode(self, episode, seed, 
-        scene_id: Literal[0, 1, 2], verbose = False): 
+    def runEpisode(
+        self, 
+        episode, 
+        seed, 
+        scene_id: Literal[0, 1, 2], 
+        episode_df,
+        verbose = False
+        ): 
         
         if self.steps == 0: # beginning of episode
             self.initEpisode(episode, seed, scene_id)
@@ -86,14 +97,25 @@ class DQnPolicy:
             
             # small-loop handling
             loop_score = self.cell_tracker.getLoopScore()
+            
+            homing = self.target_manager.isRevealed() if not self.homing else self.homing
                 
-            state = getObservation(self.distance_sensors, self.inertial_unit, self.cell_tracker, obs_dwell, loop_score)
+            state = getObservation(
+                distance_sensors=self.distance_sensors, 
+                inertial_unit=self.inertial_unit, 
+                cell_tracker=self.cell_tracker, 
+                target_manager=self.target_manager,
+                dwell_count=obs_dwell, 
+                loop_score=loop_score,
+                homing=homing
+                )
+            
             self.states.append(state)
             
             # in case of collision, transition already added
             if len(self.states) > 1: # second step onwards
                 if self.addTransition(cell_status): # if terminal state
-                    return self.endEpisode()
+                    return self.endEpisode(episode_df)
             
             if len(self.buffer) >= self.buffer.min_transitions: 
                 self.dqn_manager.optimizeModel(self.buffer)
@@ -127,7 +149,7 @@ class DQnPolicy:
             self.current_target = None 
             
             
-        return None
+        return False
 
 
 
@@ -144,19 +166,8 @@ class DQnPolicy:
 
     def addTransition(self, cell_status) -> bool:
                 
-        # calculate dwell if applicable
-        if self.dwell_count > 2 and not self.is_collision:
-            dwell = max(0, self.dwell_count - 2) 
-        else: dwell = 0
-        
-        # ignore cell status rewards after collison
-        if self.is_collision: cell_status = self.cell_tracker.CELL_SAME
-        
-        # check if within target reveal radius
-        revealed = self.target_manager.isRevealed()
-        if revealed: 
-            print('Target revealed')
-            self.episode_dict['revealed'] = True
+        # calculate dwell
+        dwell = max(0, self.dwell_count - 2)
         
         # if all surrounding cells are visited, remove revisit penalty to prevent getting stuck
         flags = self.states[0][:4]
@@ -165,19 +176,44 @@ class DQnPolicy:
         loop_score = self.cell_tracker.getLoopScore()
         
         # calculate reward        
-        reward = getReward(cell_status, self.is_collision, dwell, int(revealed), loop_score, escape_mode)
+        reward, self.previous_distance = getReward(
+            target_manager=self.target_manager, 
+            cell_status=cell_status, 
+            collision=self.is_collision, 
+            dwell_steps=dwell, 
+            loop_score=loop_score, 
+            previous_distance=self.previous_distance, 
+            escape_mode=escape_mode,
+            homing=self.homing
+            )
+        
         self.total_reward += reward
         
         # reset collision state
         self.is_collision = 0
         
-        timeout = self.steps >= self.max_steps if not revealed else False
+        # check if within target reveal radius
+        if self.target_manager.isRevealed() and not self.homing: 
+            print('Target revealed')
+            self.episode_dict['revealed'] = True
+            
+            self.previous_distance = self.target_manager.getDistance()
+            self.homing = True
+        
+        # check if within target reach radius
+        reached = self.target_manager.isReached()
+        if reached: 
+            print('Target reached')
+            self.episode_dict['reached'] = True
+        
+        # check if max steps taken
+        timeout = self.steps >= self.max_steps if not reached else False
         if timeout: 
             print('Max steps reached - episode terminated')
             self.episode_dict['timeout_before_reveal'] = True
             
         
-        next_state = self.states[1] if not (revealed or timeout) else None
+        next_state = self.states[1] if not (reached or timeout) else None
 
         transition = Transition(
             self.states[0],
@@ -188,18 +224,30 @@ class DQnPolicy:
 
         self.buffer.push(transition)
         
-        done = True if revealed or timeout else False
+        done = True if reached or timeout else False
         
         return done
 
 
 
-    def endEpisode(self) -> dict:
+    def endEpisode(self, episode_df) -> dict:
         self.episode_dict['unique_cells_covered'] = self.cell_tracker.getCoverage()
         self.episode_dict['reward'] = round(self.total_reward, 3)
         self.episode_dict['collisions'] = self.collisions
         self.episode_dict['decision_steps'] = self.steps
         
+        # append to df inplace
+        episode_df.loc[len(episode_df)] = self.episode_dict 
+        
+        
+        setVelocityAll(self.motors, 0.0)
+        resetPosition(self.robot)
+        self.resetStates()
+        
+        # will add episode to log dataframe after homing phase 
+        return True
+    
+    def resetStates(self): 
         # reset internal states for new episodes
         self.total_reward = 0
         self.collisions = 0
@@ -209,8 +257,7 @@ class DQnPolicy:
         self.action_code = None
         self.current_target = None
         self.states.clear()
-        self.cell_tracker.reset()
-        # will set new target after homing phase
+        self.homing = False
         
-        # will add episode to log dataframe after homing phase 
-        return deepcopy(self.episode_dict)
+        self.cell_tracker.reset()
+        self.target_manager.getNewTarget()

@@ -2,7 +2,6 @@ from controller import Supervisor
 
 from utils.component_manager import ComponentManager
 from utils.position_related import TargetManager
-from utils.homing import HomingBehaviour
 from utils.sensor_actuator.logger import getEpisodeDataFrame, getSaveDirectory, setAllSeeds
 
 from utils.rl_specific.dqn_manager import DQnManager
@@ -33,7 +32,7 @@ inertial_unit = component_manager['inertial_unit']
 #########################
 
 scene_id = 0
-num_episodes = 2
+num_episodes = 1000
 seed = 42
 policy = 'dqn'
 
@@ -44,12 +43,17 @@ setAllSeeds(seed)
 # OBJECT INITIALIZATION
 #########################
 
-target_manager = TargetManager(gps, inertial_unit)
 episode_df = getEpisodeDataFrame()
-homing_behaviour = HomingBehaviour(robot, component_manager, target_manager, episode_df)
+target_manager = TargetManager(gps, inertial_unit)
 
 dqn_manager = DQnManager()
-dqn_policy = DQnPolicy(dqn_manager, component_manager, target_manager, calculated_max_steps)
+dqn_policy = DQnPolicy(
+    robot=robot,
+    dqn_manager=dqn_manager, 
+    component_manager=component_manager, 
+    target_manager=target_manager, 
+    max_steps=calculated_max_steps
+    )
 
 #########################
 
@@ -57,38 +61,25 @@ dqn_policy = DQnPolicy(dqn_manager, component_manager, target_manager, calculate
 episode_iterator = iter(range(num_episodes))
 current_episode = next(episode_iterator)
 
-is_revealed = False
-is_reached = False
+episode_done = False
 
 
 # CONTROL LOOP
 while robot.step(timestep) != -1:
     
-    # rl search phase    
-    if not is_revealed:
-        episode_dict = dqn_policy.runEpisode(current_episode, seed, scene_id)
-        
-        if episode_dict:
-            if episode_dict['timeout_before_reveal']:
-                episode_df.loc[len(episode_df)] = episode_dict # append to df inplace
-                
-                is_reached = True # skip homing
-                
-                homing_behaviour.resetProtocol()
-        
-        is_revealed = bool(episode_dict)
-    
-    # determinisically home to target
-    elif not is_reached:
-        is_reached = homing_behaviour.toTarget(episode_dict)
+    if not episode_done:
+        episode_done = dqn_policy.runEpisode(
+            episode=current_episode,
+            seed=seed,
+            scene_id=scene_id,
+            episode_df=episode_df
+            )
         
     # upon episode completion    
-    elif is_reached:
+    else:
         try:
             current_episode = next(episode_iterator)
-            
-            is_revealed = False
-            is_reached = False
+            episode_done = False
             
         except StopIteration:
             print('Training Complete')

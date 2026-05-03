@@ -2,7 +2,7 @@
 #########################
 
 import random
-from math import dist, pi, atan2
+from math import dist, sin, cos, atan2
 
 from .cell_tracker import origin
 from .sensor_actuator.sensors import readGPS
@@ -11,10 +11,10 @@ from .sensor_actuator.sensors import readGPS
 arena_size = 2;
 buffer = arena_size * 0.05
 
-min_distance_from_origin = 0.3
+min_distance_from_origin = 0.6
 
-reveal_radius = 0.2
-reach_radius = 0.09
+reveal_radius = 0.35
+reach_radius = 0.1
 
 
 class TargetManager:
@@ -39,15 +39,18 @@ class TargetManager:
         
         return self.target
     
-    def getDistance(self):
+    def getDistance(self, normalized = True): # [0, 1] normalized
         position = readGPS(self.gps)
-        return dist(position, self.target) 
+        
+        distance =  dist(position, self.target) 
+        
+        return min(distance / reveal_radius, 1.0) if normalized else distance
     
     def isRevealed(self) -> bool:
-        return self.getDistance() <= reveal_radius
+        return self.getDistance(False) <= reveal_radius
     
     def isReached(self) -> bool: 
-        return self.getDistance() <= reach_radius
+        return self.getDistance(False) <= reach_radius
     
     def getBearing(self):
         position = readGPS(self.gps)
@@ -58,15 +61,12 @@ class TargetManager:
         target_angle = atan2(dy, dx)
         robot_angle = self.inertial_unit.getRollPitchYaw()[2]
 
-        bearing = target_angle - robot_angle
+        raw_bearing = target_angle - robot_angle
 
-        while bearing > pi:
-            bearing -= 2 * pi
+        # wrap to [-pi, pi]
+        bearing = atan2(sin(raw_bearing), cos(raw_bearing))
 
-        while bearing < -pi:
-            bearing += 2 * pi
-
-        return bearing
+        return [sin(bearing), cos(bearing)]
     
     def __str__(self):
         return f'Target: {self.target}'
