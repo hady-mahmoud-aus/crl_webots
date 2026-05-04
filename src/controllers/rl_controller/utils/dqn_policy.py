@@ -15,14 +15,12 @@ from .sensor_actuator.logger import episode_dict
 from .sensor_actuator.metrics import getSearchEfficiency
 
 from .rl_specific.buffer import ReplayBuffer, PriorityBuffer, ReservoirBuffer
-from .rl_specific.dqn_manager import DQnManager, getFlagsCRL
+from .rl_specific.dqn_manager import DQnManager, getFlagsCRL, Transition
 
 
 # assuming optimal row-sweeping search
 cells_per_row = arena_size / forward_step_length
 calculated_max_steps = int((cells_per_row ** 2) + (6 * cells_per_row))
-
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 # K top episodes stored for selective replay
 K = 10
@@ -30,13 +28,13 @@ K = 10
 class DQnPolicy:
     def __init__(
         self, 
-        robot: Supervisor,
-        dqn_manager: DQnManager,
-        component_manager: ComponentManager,  
-        target_manager: TargetManager,  
-        max_steps,
         policy: Literal['dqn', 'dqn_replay','dqn_ewc','dqn_replay_ewc'],
         scene_id: Literal[0, 1, 2],
+        robot: Supervisor,
+        dqn_manager: DQnManager,
+        target_manager: TargetManager,  
+        component_manager: ComponentManager,  
+        max_steps,
         eval = False
         ):
         self.robot = robot
@@ -61,14 +59,16 @@ class DQnPolicy:
         
         self.current_target = None
         
+        self.eval = eval
+        
         self.scene_id = scene_id
         
         self.buffer = ReplayBuffer(capacity=10000, min_transitions=500)
         
-        self.replay, self.ewc = getFlagsCRL(self.scene_id, policy)
+        self.replay, self.ewc = getFlagsCRL(self.scene_id, policy, mode='write')
         
-        self.replay == False if not self.eval else self.replay
-        self.ewc == False if self.eval else self.ewc
+        self.replay = False if not self.eval else self.replay
+        self.ewc = False if self.eval else self.ewc
         
         if self.replay: # selective episode replay CRL
             self.selective_replay_buffer = PriorityBuffer(K)
@@ -83,7 +83,6 @@ class DQnPolicy:
         self.previous_distance = 0
         
         self.homing = False
-        self.eval = eval
 
 
 
@@ -111,12 +110,15 @@ class DQnPolicy:
             # dwell management: ignore dwell after collisions
             if not self.is_collision:
                 # update dwell
-                if cell_status == self.cell_tracker.CELL_SAME: self.dwell_count += 1
-                else: self.dwell_count = 0 # moved to new cell
+                if cell_status == self.cell_tracker.CELL_SAME: 
+                    self.dwell_count += 1
+                else: 
+                    self.dwell_count = 0 # moved to new cell
                 
                 obs_dwell = self.dwell_count
             
-            else: obs_dwell = 0
+            else: 
+                obs_dwell = 0
             
             # small-loop handling
             loop_score = self.cell_tracker.getLoopScore()
@@ -247,7 +249,8 @@ class DQnPolicy:
 
         self.buffer.push(transition)
         
-        if self.replay or self.ewc: self.handleCRL(transition)
+        if self.replay or self.ewc: 
+            self.handleCRL(transition)
         
         done = True if reached or timeout else False
         
@@ -271,7 +274,9 @@ class DQnPolicy:
         episode_df.loc[len(episode_df)] = self.episode_dict 
         
         # try adding episode to selective replay buffer
-        if self.replay: self.saveEpisodeCRL()
+        if self.replay: 
+            self.saveEpisodeCRL()
+        self.transition_list = []
         
         setVelocityAll(self.motors, 0.0)
         resetPosition(self.robot)
@@ -308,8 +313,6 @@ class DQnPolicy:
                 )
             
             self.selective_replay_buffer.push(score, self.transition_list)
-            
-            self.transition_list = []
             
             
             

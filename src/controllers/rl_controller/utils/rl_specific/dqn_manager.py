@@ -24,15 +24,14 @@ action_space = [0, 1, 2]
 
 Transition = collections.namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-selective_replay_buffer = {'scene_1': [], 'scene_2': None} # each scene contains a list of K (10) episode buffers from evaluation
 
 class DQnManager:
     def __init__(
         self, 
         policy: Literal['dqn', 'dqn_replay','dqn_ewc','dqn_replay_ewc'],
         scene_id: Literal[0, 1, 2],
-        selective_replay_buffer: Path = None,
         model_params: Path = None, 
+        selective_replay_buffer: dict = None,
         eval = False
         ):
         
@@ -42,22 +41,21 @@ class DQnManager:
 
         self.loss_fn = nn.SmoothL1Loss()
         
+        
+        self.policy_net = DQN(n_observations, n_actions).to(self.device)
+        self.target_net = DQN(n_observations, n_actions).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        
+        self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
+        self.steps_done = 0
+        
         if model_params:
             self.fromSaved(model_params)
-        else:
-            self.policy_net = DQN(n_observations, n_actions).to(self.device)
-            self.target_net = DQN(n_observations, n_actions).to(self.device)
-            self.target_net.load_state_dict(self.policy_net.state_dict())
-            
-            self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
-            
-            self.steps_done = 0
         
-        
-        self.replay, self.ewc = getFlagsCRL(scene_id, policy)
+        self.replay, self.ewc = getFlagsCRL(scene_id, policy, mode='read')
         
         if self.replay:
-            self.selective_replay_buffer = torch.load(selective_replay_buffer) # saved as .pt file
+            self.selective_replay_buffer = selective_replay_buffer 
 
         if self.ewc:
             pass
@@ -95,13 +93,14 @@ class DQnManager:
             random.shuffle(transitions)
             
         # Sample a random minibatch from replay memory
-        else: transitions = buffer.sample(BATCH_SIZE)
+        else: 
+            transitions = buffer.sample(BATCH_SIZE)
         
         
         batch = Transition(*zip(*transitions))
 
         # Convert stored states/actions/rewards into batched tensors
-        state_batch = torch.stack(batch.state).to(self.device)  # [B, 14]
+        state_batch = torch.stack(batch.state).to(self.device)  # [B, 19]
         action_batch = torch.tensor(batch.action, device=self.device).long().unsqueeze(1)
         reward_batch = torch.tensor(batch.reward, device=self.device).float()
 
@@ -187,11 +186,11 @@ class DQnManager:
     def sampleSelectiveReplay(self, batch_size):
         def flattenList(scene): return [transition for episode in scene for transition in episode]
         
-        if self.selective_replay_buffer['scene_2'] is not None:
+        if self.selective_replay_buffer[1] is not None: # scene 2
             half_batch = batch_size // 2
             
-            scene_1 = flattenList(self.selective_replay_buffer['scene_1'])
-            scene_2 = flattenList(self.selective_replay_buffer['scene_2'])
+            scene_1 = flattenList(self.selective_replay_buffer[0])
+            scene_2 = flattenList(self.selective_replay_buffer[1])
             
             transitions = random.sample(scene_1, half_batch)
             transitions += random.sample(scene_2, half_batch)
@@ -199,17 +198,27 @@ class DQnManager:
             return transitions
         
         else: 
-            scene_1 = flattenList(self.selective_replay_buffer['scene_1'])
+            scene_1 = flattenList(self.selective_replay_buffer[0])
             return random.sample(scene_1, batch_size)
         
         
         
-def getFlagsCRL(scene_id, policy): 
+def getFlagsCRL(scene_id, policy, mode: Literal['read', 'write']): 
     """Returns -> (is_selective_replay, is_ewc)"""
-    if scene_id == 2:
-        return False, False
-    else:
-        replay = policy in ['dqn_replay' 'dqn_replay_ewc']
-        ewc = policy in ['dqn_ewc','dqn_replay_ewc']
+    if mode == 'write':
+        if scene_id == 2: # do not save new CRL info for last scene
+            return False, False
+        else:
+            replay = policy in ['dqn_replay', 'dqn_replay_ewc']
+            ewc = policy in ['dqn_ewc','dqn_replay_ewc']
+            
+            return replay, ewc
         
-        return replay, ewc
+    elif mode == "read": 
+        if scene_id == 0: # no CRL info in first scene
+            return False, False
+        else:
+            replay = policy in ['dqn_replay', 'dqn_replay_ewc']
+            ewc = policy in ['dqn_ewc','dqn_replay_ewc']
+            
+            return replay, ewc

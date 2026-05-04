@@ -1,4 +1,5 @@
-import os, torch
+import os
+import torch
 from controller import Supervisor
 
 from utils.component_manager import ComponentManager
@@ -37,15 +38,31 @@ seed = int(os.getenv('SEED', 42))
 num_episodes = int(os.getenv('NUM_EPISODES', 2000))
 policy = os.getenv('POLICY', 'dqn')
 scene_id = int(os.getenv('SCENE_ID', 0))
-parent_scene = int(os.get_env('PARENT_SCENE', -1))
-eval = os.getenv('EVAL', False)
+parent_scene = int(os.getenv('PARENT_SCENE', -1))
+eval = os.getenv('EVAL', 'False')
+eval = eval == 'True'
 
-model_params_path = os.getenv ('PARAMS_PATH', None)  
+model_params_filename = os.getenv ('PARAMS_NAME', None)  
+selective_replay_filename = os.getenv('SELECTIVE_REPLAY_NAME', None)
 
 #########################
 
 
 setAllSeeds(seed)
+
+save_dir = getSaveDirectory(policy)
+
+if model_params_filename is not None:
+    model_params_path = save_dir / model_params_filename
+else: 
+    model_params_path = None
+
+if selective_replay_filename is not None:
+    selective_replay_buffer = torch.load(save_dir / selective_replay_filename)
+else: 
+    selective_replay_buffer = {0: None, 1: None}
+
+
 
 # OBJECT INITIALIZATION
 #########################
@@ -55,16 +72,19 @@ target_manager = TargetManager(gps, inertial_unit)
 
 dqn_manager = DQnManager(
     policy=policy,
-    model_params=model_params_path, 
+    scene_id=scene_id,
+    model_params=model_params_path,
+    selective_replay_buffer=selective_replay_buffer,
     eval=eval
     )
 
 dqn_policy = DQnPolicy(
     policy=policy,
+    scene_id=scene_id,
     robot=robot,
     dqn_manager=dqn_manager, 
-    component_manager=component_manager, 
     target_manager=target_manager, 
+    component_manager=component_manager, 
     max_steps=calculated_max_steps,
     eval=eval
     )
@@ -85,7 +105,6 @@ while robot.step(timestep) != -1:
         episode_done = dqn_policy.runEpisode(
             episode=current_episode,
             seed=seed,
-            scene_id=scene_id,
             episode_df=episode_df
             )
         
@@ -99,23 +118,21 @@ while robot.step(timestep) != -1:
             print('Training Complete')
             
             train_eval = 'train' if not eval else 'eval'
-            parent_label = '' if parent_scene == -1 else parent_scene
-            
-            save_dir = getSaveDirectory(policy)
-            
-            logs_filename = f'logs-{train_eval}-{parent_label}-{scene_id}.csv'
-            episode_df.to_csv(save_dir / logs_filename)
-            print(f'Training logs saved')
+            parent_label = '_' if parent_scene == -1 else parent_scene
+
+            filename = f'logs-{train_eval}-{parent_label}-{scene_id}.csv'
+                
+            episode_df.to_csv(save_dir / filename)
+            print('Training logs saved')
             
             if not eval:
-                model_filename = f'model-{train_eval}-{parent_label}-{scene_id}.pt'
-                dqn_manager.saveModel(save_dir / model_filename)
-                print(f'Model parameters saved')
+                filename = f'model-{parent_label}-{scene_id}.pt'
+                dqn_manager.saveModel(save_dir / filename)
+                print('Model parameters saved')
             
             # save CRL info
-            
-            
-            
+            dqn_policy.saveSelectiveReplayBuffer(save_dir, selective_replay_buffer)
+            dqn_policy.saveTransitionsEWC(save_dir)
             
             # exit webots
             robot.simulationQuit(0)
