@@ -1,5 +1,6 @@
 #VRML_SIM R2025a utf8
 
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
 
@@ -7,7 +8,72 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944
-  position -1.2962751078901368e-06 -1.2962787759352673e-06 3.7473625588188892
+  position -0.00030942806889779767 -0.22752405042783433 4.621629022072607
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 2 2
+  floorTileSize 0.2 0.2
+}
+DEF box_0 WoodenBox {
+  translation 0.65 0.65 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  size 0.1 0.1 0.1
+}
+DEF box_1 WoodenBox {
+  translation 0.35 -0.65 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(1)"
+  size 0.1 0.1 0.1
+}
+DEF box_2 WoodenBox {
+  translation -0.35 -0.35 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(2)"
+  size 0.1 0.1 0.1
+}
+DEF box_3 WoodenBox {
+  translation -0.45 0.45 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(3)"
+  size 0.1 0.1 0.1
+}
+DEF box_4 WoodenBox {
+  translation 0.65 -0.35 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(4)"
+  size 0.1 0.1 0.1
+}
+DEF box_5 WoodenBox {
+  translation -0.65 -0.75 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(5)"
+  size 0.1 0.1 0.1
+}
+DEF box_6 WoodenBox {
+  translation -0.55 0.05 0.05
+  rotation 0 0 1 4.6928012867022945e-06
+  name "wooden box(6)"
+  size 0.1 0.1 0.1
+}
+DEF box_7 WoodenBox {
+  translation 0.45 0.25 0.05
+  rotation 0 0 1 4.6928e-06
+  name "wooden box(7)"
+  size 0.1 0.1 0.1
+}
+DEF box_8 WoodenBox {
+  translation 0.05 0.65 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(8)"
+  size 0.1 0.1 0.1
+}
+DEF box_9 WoodenBox {
+  translation 0.75 -0.75 0.05
+  rotation 0 0 1 4.692820414042842e-06
+  name "wooden box(9)"
+  size 0.1 0.1 0.1
 }
 Robot {
   translation 0 -0.9 0
@@ -34,7 +100,6 @@ Robot {
       ]
       endPoint DEF EPUCK_LEFT_WHEEL Solid {
         translation 0 0.026 0.02
-        rotation 0 1 0 0
         children [
           DEF EPUCK_WHEEL Pose {
             rotation 1 0 0 -1.570796
@@ -186,7 +251,6 @@ Robot {
       ]
       endPoint DEF EPUCK_RIGHT_WHEEL Solid {
         translation 0 -0.026 0.02
-        rotation 0 1 0 0
         children [
           Pose {
             rotation 1 0 0 3.14159
@@ -1587,95 +1651,18 @@ Robot {
   cpuConsumption 1.11
   remoteControl "e-puck_bluetooth"
 }
-RectangleArena {
-  floorSize 2 2
-  floorTileSize 0.2 0.2
-}
-WoodenBox {
-  translation 0.7 0.7 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.251282 -0.551532 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(1)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.389283 -0.348898 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(2)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.192901 -0.0105017 0.05
-  rotation 0 0 1 4.6928012867022945e-06
-  name "wooden box(13)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.453423 0.453346 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(3)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.60442 -0.240539 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(4)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.680174 -0.703313 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(5)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.604314 0.40315 0.05
-  rotation 0 0 1 4.6928012867022945e-06
-  name "wooden box(11)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.696802 -0.0293053 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(6)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.31266 0.126033 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(7)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation -0.664489 0.754186 0.05
-  rotation 0 0 1 4.6928012867022945e-06
-  name "wooden box(12)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.0673494 0.625432 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(8)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.724551 -0.724023 0.05
-  rotation 0 0 1 4.692820414042842e-06
-  name "wooden box(9)"
-  size 0.1 0.1 0.1
-}
-WoodenBox {
-  translation 0.781591 -0.0179636 0.05
+DEF box_10 WoodenBox {
+  translation 0.75061 -0.0490385 0.05
   rotation 0 0 1 4.692820414042842e-06
   name "wooden box(10)"
   size 0.1 0.1 0.1
 }
+Robot {
+  controller "dynamic_obstacles_controller"
+  supervisor TRUE
+}
 Background {
   skyColor [
-    0.572549 0.780392 1
+    0.435294 0.552941 0.556863
   ]
 }
