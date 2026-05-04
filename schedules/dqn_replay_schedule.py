@@ -12,7 +12,7 @@ def getRootDirectory():
     return project_root
 
 
-policy = "dqn"
+policy = "dqn_replay"
 
 WEBOTS_EXE = r"webots"
 
@@ -28,8 +28,15 @@ SCENE_TO_WORLD = {
 TRAIN_EPISODES = 2000
 EVAL_EPISODES = 100
 
+MODEL_0 = "model-_-0.pt"
+MODEL_01 = "model-0-1.pt"
+MODEL_12 = "model-1-2.pt"
+
+SSER_0 = "selective-replay-buffer-0.pt"
+SSER_01 = "selective-replay-buffer-0-1.pt"
+
 SCHEDULE = [
-    # Train T1 from scratch.
+    # Train T1 from scratch. No PARAMS_NAME and no SELECTIVE_REPLAY_NAME.
     {
         "SCENE_ID": 0,
         "PARENT_SCENE": -1,
@@ -38,119 +45,86 @@ SCHEDULE = [
         "EVAL": "False",
     },
 
-    # Eval T1 after training T1.
+    # Evaluate/collect top-K SSER episodes for T1. Saves selective-replay-buffer-0.pt.
     {
         "SCENE_ID": 0,
         "PARENT_SCENE": -1,
-        "PARAMS_NAME": "model-_-0.pt",
+        "PARAMS_NAME": MODEL_0,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
     },
 
-    # Train T2 from T1 model.
+    # Train T2 from T1 model using T1 SSER memory.
     {
         "SCENE_ID": 1,
         "PARENT_SCENE": 0,
-        "PARAMS_NAME": "model-_-0.pt",
+        "PARAMS_NAME": MODEL_0,
+        "SELECTIVE_REPLAY_NAME": SSER_0,
         "POLICY": policy,
         "NUM_EPISODES": TRAIN_EPISODES,
         "EVAL": "False",
     },
 
-    # Eval T2 after training T2.
+    # Evaluate/collect top-K SSER episodes for T2. Loads T1 SSER so saved file keeps T1+T2.
+    # Saves selective-replay-buffer-0-1.pt.
     {
         "SCENE_ID": 1,
         "PARENT_SCENE": 0,
-        "PARAMS_NAME": "model-0-1.pt",
+        "PARAMS_NAME": MODEL_01,
+        "SELECTIVE_REPLAY_NAME": SSER_0,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
     },
 
-    # Eval old T1 after training T2.
+    # Evaluate old T1 after training T2.
     {
         "SCENE_ID": 0,
         "PARENT_SCENE": 0,
-        "PARAMS_NAME": "model-0-1.pt",
+        "PARAMS_NAME": MODEL_01,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
     },
 
-    # Train T3 from T2 model.
+    # Train T3 from T1->T2 model using T1+T2 SSER memory.
     {
         "SCENE_ID": 2,
         "PARENT_SCENE": 1,
-        "PARAMS_NAME": "model-0-1.pt",
+        "PARAMS_NAME": MODEL_01,
+        "SELECTIVE_REPLAY_NAME": SSER_01,
         "POLICY": policy,
         "NUM_EPISODES": TRAIN_EPISODES,
         "EVAL": "False",
     },
 
-    # Eval T3 after training T3.
+    # Evaluate T3 after training T3.
     {
         "SCENE_ID": 2,
         "PARENT_SCENE": 1,
-        "PARAMS_NAME": "model-1-2.pt",
+        "PARAMS_NAME": MODEL_12,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
     },
 
-    # Eval old T2 after training T3.
+    # Evaluate old T2 after training T3.
     {
         "SCENE_ID": 1,
         "PARENT_SCENE": 1,
-        "PARAMS_NAME": "model-1-2.pt",
+        "PARAMS_NAME": MODEL_12,
+        "SELECTIVE_REPLAY_NAME": SSER_01,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
     },
 
-    # Eval old T1 after training T3.
+    # Evaluate old T1 after training T3.
     {
         "SCENE_ID": 0,
         "PARENT_SCENE": 1,
-        "PARAMS_NAME": "model-1-2.pt",
-        "POLICY": policy,
-        "NUM_EPISODES": EVAL_EPISODES,
-        "EVAL": "True",
-    },
-
-    # Train T2 from scratch.
-    {
-        "SCENE_ID": 1,
-        "PARENT_SCENE": -1,
-        "POLICY": policy,
-        "NUM_EPISODES": TRAIN_EPISODES,
-        "EVAL": "False",
-    },
-
-    # Eval T2 after training T2.
-    {
-        "SCENE_ID": 1,
-        "PARENT_SCENE": -1,
-        "PARAMS_NAME": "model-_-1.pt",
-        "POLICY": policy,
-        "NUM_EPISODES": EVAL_EPISODES,
-        "EVAL": "True",
-    },
-
-    # Train T3 from scratch.
-    {
-        "SCENE_ID": 2,
-        "PARENT_SCENE": -1,
-        "POLICY": policy,
-        "NUM_EPISODES": TRAIN_EPISODES,
-        "EVAL": "False",
-    },
-
-    # Eval T3 after training T3.
-    {
-        "SCENE_ID": 2,
-        "PARENT_SCENE": -1,
-        "PARAMS_NAME": "model-_-2.pt",
+        "PARAMS_NAME": MODEL_12,
         "POLICY": policy,
         "NUM_EPISODES": EVAL_EPISODES,
         "EVAL": "True",
@@ -177,12 +151,17 @@ def run_one(job):
 
     print(f"\n=== Running scene {scene_id} ===")
     print(f"World: {world_path}")
+    print(f"Policy: {job.get('POLICY')}")
     print(f"Params: {job.get('PARAMS_NAME') or 'None'}")
+    print(f"SSER memory: {job.get('SELECTIVE_REPLAY_NAME') or 'None'}")
+    print(f"Eval: {job.get('EVAL')}")
 
     result = subprocess.run(cmd, env=env)
 
     if result.returncode != 0:
-        raise RuntimeError(f"Webots run failed for scene {scene_id} with code {result.returncode}")
+        raise RuntimeError(
+            f"Webots run failed for scene {scene_id} with code {result.returncode}"
+        )
 
 
 for job in SCHEDULE:
