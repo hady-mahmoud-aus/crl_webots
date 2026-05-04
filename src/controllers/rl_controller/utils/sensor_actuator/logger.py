@@ -16,10 +16,11 @@ def getSaveDirectory(
         'dqn_replay_ewc'
         ]
     ):
-    cwd = Path.cwd()
+    script_path = Path(__file__).resolve()
     project_root = next(
-        p for p in (cwd, *cwd.parents)
-        if p.name == REPO_NAME
+        path
+        for path in (script_path.parent, *script_path.parents)
+        if (path / 'requirements.txt').exists() and (path / 'src').is_dir()
         )
     
     path = project_root / 'runs' / policy

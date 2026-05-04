@@ -1,4 +1,15 @@
-from helper import runOneJob, TRAIN_EPISODES, EVAL_EPISODES, MODEL_NAMES
+import os
+import subprocess
+from pathlib import Path
+
+
+def getRootDirectory():
+    script_path = Path(__file__).resolve()
+    for path in (script_path.parent, *script_path.parents):
+        if (path / "requirements.txt").exists() and (path / "src").is_dir():
+            return path
+
+    raise RuntimeError(f"Could not locate project root from {script_path}")
 
 
 policy = "dqn"
