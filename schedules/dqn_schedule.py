@@ -7,7 +7,7 @@ def getRootDirectory():
     cwd = Path.cwd()
     project_root = next(
         p for p in (cwd, *cwd.parents)
-        if p.name == "CRL"
+        if p.name == "crl_webots"
     )
     return project_root
 

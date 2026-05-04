@@ -1,7 +1,9 @@
 import pandas as pd
 from pathlib import Path
 from typing import Literal
-import random, torch, numpy
+import random
+import torch
+import numpy
 
 
 def getSaveDirectory(
@@ -16,7 +18,7 @@ def getSaveDirectory(
     cwd = Path.cwd()
     project_root = next(
         p for p in (cwd, *cwd.parents)
-        if p.name == "CRL"
+        if p.name == "crl_webots"
         )
     
     path = project_root / 'runs' / policy
