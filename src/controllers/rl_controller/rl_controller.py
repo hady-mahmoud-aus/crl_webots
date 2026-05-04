@@ -1,3 +1,4 @@
+import os, torch
 from controller import Supervisor
 
 from utils.component_manager import ComponentManager
@@ -28,15 +29,21 @@ inertial_unit = component_manager['inertial_unit']
 
 #########################
 
+
 # EXPERIMENT PARAMETERS
 #########################
 
-scene_id = 1
-num_episodes = 1000
-seed = 42
-policy = 'dqn'
+seed = int(os.getenv('SEED', 42))
+num_episodes = int(os.getenv('NUM_EPISODES', 2000))
+policy = os.getenv('POLICY', 'dqn')
+scene_id = int(os.getenv('SCENE_ID', 0))
+parent_scene = int(os.get_env('PARENT_SCENE', -1))
+eval = os.getenv('EVAL', False)
+
+model_params_path = os.getenv ('PARAMS_PATH', None)  
 
 #########################
+
 
 setAllSeeds(seed)
 
@@ -46,13 +53,20 @@ setAllSeeds(seed)
 episode_df = getEpisodeDataFrame()
 target_manager = TargetManager(gps, inertial_unit)
 
-dqn_manager = DQnManager()
+dqn_manager = DQnManager(
+    policy=policy,
+    model_params=model_params_path, 
+    eval=eval
+    )
+
 dqn_policy = DQnPolicy(
+    policy=policy,
     robot=robot,
     dqn_manager=dqn_manager, 
     component_manager=component_manager, 
     target_manager=target_manager, 
-    max_steps=calculated_max_steps
+    max_steps=calculated_max_steps,
+    eval=eval
     )
 
 #########################
@@ -84,15 +98,24 @@ while robot.step(timestep) != -1:
         except StopIteration:
             print('Training Complete')
             
+            train_eval = 'train' if not eval else 'eval'
+            parent_label = '' if parent_scene == -1 else parent_scene
+            
             save_dir = getSaveDirectory(policy)
             
-            logs_filename = f'data-{scene_id}-{num_episodes}-{seed}.csv'
+            logs_filename = f'logs-{train_eval}-{parent_label}-{scene_id}.csv'
             episode_df.to_csv(save_dir / logs_filename)
+            print(f'Training logs saved')
             
-            model_filename = f'params-{scene_id}-{num_episodes}-{seed}.pt'
-            dqn_manager.saveModel(save_dir / model_filename)
+            if not eval:
+                model_filename = f'model-{train_eval}-{parent_label}-{scene_id}.pt'
+                dqn_manager.saveModel(save_dir / model_filename)
+                print(f'Model parameters saved')
             
-            print(f'Training logs and model parameters saved to {save_dir}')
+            # save CRL info
             
-            robot.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)
-            break
+            
+            
+            
+            # exit webots
+            robot.simulationQuit(0)

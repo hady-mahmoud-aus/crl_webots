@@ -2,6 +2,8 @@ from controller import Supervisor
 from collections import deque, namedtuple
 from copy import deepcopy
 from typing import Literal
+import torch
+from pathlib import Path
 
 from .cell_tracker import CellTracker
 from .component_manager import ComponentManager
@@ -10,9 +12,10 @@ from .actions import action, actionComplete, onCollision, forward_step_length
 from .sensor_actuator.motors import setVelocityAll
 from .rl_helper import getObservation, getReward
 from .sensor_actuator.logger import episode_dict
+from .sensor_actuator.metrics import getSearchEfficiency
 
-from .rl_specific.buffer import ReplayBuffer
-from .rl_specific.dqn_manager import DQnManager
+from .rl_specific.buffer import ReplayBuffer, PriorityBuffer, ReservoirBuffer
+from .rl_specific.dqn_manager import DQnManager, getFlagsCRL
 
 
 # assuming optimal row-sweeping search
@@ -21,6 +24,9 @@ calculated_max_steps = int((cells_per_row ** 2) + (6 * cells_per_row))
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
+# K top episodes stored for selective replay
+K = 10
+
 class DQnPolicy:
     def __init__(
         self, 
@@ -28,7 +34,10 @@ class DQnPolicy:
         dqn_manager: DQnManager,
         component_manager: ComponentManager,  
         target_manager: TargetManager,  
-        max_steps = float('inf'),
+        max_steps,
+        policy: Literal['dqn', 'dqn_replay','dqn_ewc','dqn_replay_ewc'],
+        scene_id: Literal[0, 1, 2],
+        eval = False
         ):
         self.robot = robot
         
@@ -52,7 +61,21 @@ class DQnPolicy:
         
         self.current_target = None
         
-        self.buffer = ReplayBuffer(capacity=10000, min_transitions=500)   
+        self.scene_id = scene_id
+        
+        self.buffer = ReplayBuffer(capacity=10000, min_transitions=500)
+        
+        self.replay, self.ewc = getFlagsCRL(self.scene_id, policy)
+        
+        self.replay == False if not self.eval else self.replay
+        self.ewc == False if self.eval else self.ewc
+        
+        if self.replay: # selective episode replay CRL
+            self.selective_replay_buffer = PriorityBuffer(K)
+            self.transition_list = []
+
+        if self.ewc: # EWC CRL
+            self.ewc_buffer = ReservoirBuffer(4096)   
         
         # used for tracking current and previous state, such that transition contains (s_t, s_t+1)
         self.states = deque(maxlen=2)
@@ -60,6 +83,7 @@ class DQnPolicy:
         self.previous_distance = 0
         
         self.homing = False
+        self.eval = eval
 
 
 
@@ -67,13 +91,12 @@ class DQnPolicy:
         self, 
         episode, 
         seed, 
-        scene_id: Literal[0, 1, 2], 
         episode_df,
         verbose = False
         ): 
         
         if self.steps == 0: # beginning of episode
-            self.initEpisode(episode, seed, scene_id)
+            self.initEpisode(episode, seed)
         
         
         if self.current_target is None: # if no action is taking place
@@ -112,14 +135,14 @@ class DQnPolicy:
             
             self.states.append(state)
             
-            # in case of collision, transition already added
             if len(self.states) > 1: # second step onwards
                 if self.addTransition(cell_status): # if terminal state
                     return self.endEpisode(episode_df)
-            
-            if len(self.buffer) >= self.buffer.min_transitions: 
-                self.dqn_manager.optimizeModel(self.buffer)
-                self.dqn_manager.softUpdate()
+                
+            if not self.eval: # do not update network on evaluation episodes
+                if len(self.buffer) >= self.buffer.min_transitions: 
+                    self.dqn_manager.optimizeModel(self.buffer)
+                    self.dqn_manager.softUpdate()
                 
             self.action_code = self.dqn_manager.getAction(state.unsqueeze(dim=0))
             self.current_target = action(self.action_code, self.motors, self.position_sensors)
@@ -153,13 +176,13 @@ class DQnPolicy:
 
 
 
-    def initEpisode(self, episode, seed, scene_id):
+    def initEpisode(self, episode, seed):
         print(f'Starting episode: {episode}')
         print(f'Target: {self.target_manager}')
             
         self.episode_dict = deepcopy(episode_dict)
         self.episode_dict['episode'] = episode
-        self.episode_dict['scene_id'] = scene_id
+        self.episode_dict['scene_id'] = self.scene_id
         self.episode_dict['seed'] = seed
 
 
@@ -210,7 +233,7 @@ class DQnPolicy:
         timeout = self.steps >= self.max_steps if not reached else False
         if timeout: 
             print('Max steps reached - episode terminated')
-            self.episode_dict['timeout_before_reveal'] = True
+            self.episode_dict['timeout'] = True
             
         
         next_state = self.states[1] if not (reached or timeout) else None
@@ -224,9 +247,17 @@ class DQnPolicy:
 
         self.buffer.push(transition)
         
+        if self.replay or self.ewc: self.handleCRL(transition)
+        
         done = True if reached or timeout else False
         
         return done
+
+    def handleCRL(self, transition):
+        if self.replay:
+            self.transition_list.append(transition)
+        if self.ewc:
+            self.ewc_buffer.push(transition)
 
 
 
@@ -236,9 +267,11 @@ class DQnPolicy:
         self.episode_dict['collisions'] = self.collisions
         self.episode_dict['decision_steps'] = self.steps
         
-        # append to df inplace
+        # append to episode tracker df inplace
         episode_df.loc[len(episode_df)] = self.episode_dict 
         
+        # try adding episode to selective replay buffer
+        if self.replay: self.saveEpisodeCRL()
         
         setVelocityAll(self.motors, 0.0)
         resetPosition(self.robot)
@@ -261,3 +294,39 @@ class DQnPolicy:
         
         self.cell_tracker.reset()
         self.target_manager.getNewTarget()
+        
+    def saveEpisodeCRL(self):
+        if self.episode_dict['reached']: # only consider successful episodes
+            coverage = self.episode_dict['unique_cells_covered']
+            steps = self.episode_dict['decision_steps']
+            collisions = self.episode_dict['collisions']
+            
+            score = getSearchEfficiency(
+                unique_coverage=coverage, 
+                total_steps=steps,
+                n_collisions=collisions
+                )
+            
+            self.selective_replay_buffer.push(score, self.transition_list)
+            
+            self.transition_list = []
+            
+            
+            
+    def saveSelectiveReplayBuffer(self, save_folder, scene_buffer):
+        if self.replay:
+            scene_buffer[self.scene_id] = self.selective_replay_buffer.items()
+            
+            scene_str = '0' if self.scene_id == 0 else '0-1'
+            filename = f'selective-replay-buffer-{scene_str}.pt'
+            torch.save(scene_buffer, (save_folder / filename))
+    
+    
+            
+    def saveTransitionsEWC(self, save_folder: Path):
+        if self.ewc:
+            filename = f"ewc-transitions-{self.scene_id}.pt"
+            torch.save(self.ewc_buffer.memory, (save_folder / filename))
+            print('EWC transitions saved')
+            
+

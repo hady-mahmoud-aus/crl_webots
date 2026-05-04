@@ -8,7 +8,7 @@ $$
 \mathcal{T} = (T_1, T_2, T_3)
 $$
 
-where the robot and search policy are shared across tasks.
+where the robot and learned policy are shared across tasks.
 
 Recommended scene sequence:
 
@@ -20,73 +20,82 @@ This is a continual RL problem because the observation/action spaces remain fixe
 
 ## Task objective
 
-The task is **coverage-oriented search with deterministic post-reveal homing**.
+The task is **target-revealing navigation with learned post-reveal approach**.
 
-The RL policy must:
+The policy must:
 
-1. explore previously unseen regions,
-2. avoid excessive revisits,
-3. avoid collisions and stalling during search,
-4. reveal a hidden target once close enough.
+1. explore previously unseen regions before target reveal,
+2. avoid excessive revisits, small loops, dwell, and collisions,
+3. reveal a hidden target once close enough,
+4. after reveal, use target distance and bearing to approach the target,
+5. reach the target before the maximum decision-step limit.
 
-After the target is revealed, the RL policy no longer acts. A deterministic homing controller then:
-
-1. turns toward the target,
-2. moves forward,
-3. repeats until the target is reached or a homing timeout occurs,
-4. attempts simple recovery if a collision is detected.
-
-The main RL objective is target reveal, not target reaching.
+The main continual-learning objective is target reveal. Target reaching after reveal is also logged and can be used as a final episode success metric.
 
 ## Full state vs policy observation
 
-The simulator has a full environment state, but the policy receives only a compact partial observation for search.
+The simulator has a full environment state, but the policy receives a compact partial observation.
 
 Use this wording:
 
-> The simulator defines the full environment state, but the RL policy receives a compact partial observation consisting of proximity sensors, heading features, and local visited-cell indicators. Target-relative distance and bearing are used by the deterministic homing controller after reveal, not by the learned search policy.
+> The simulator defines the full environment state, but the learned policy receives a compact observation consisting of local visited/blocked-cell indicators, dwell and loop features, proximity sensors, heading features, and target-relative features. During pre-reveal search, target-relative distance and bearing are zeroed so that the target remains hidden. After reveal, target-relative distance and bearing are enabled for the learned target-approach regime.
 
 ## Observation vector
 
-Use a fixed-size search observation vector:
+The current code uses a 19-dimensional observation:
 
 $$
 o_t =
-[p_0,\dots,p_7,
-\sin\theta_t,\cos\theta_t,
-v_{front},v_{left},v_{right},v_{back}]
+[v_f,v_r,v_l,v_b,
+ d_{dwell},
+ \ell,
+ p_0,\dots,p_7,
+ \sin\theta_t,\cos\theta_t,
+ \hat d_t,
+ \sin\phi_t,\cos\phi_t]
 $$
 
 where:
 
-- $p_0,\dots,p_7$: normalized proximity readings
-- $(\sin\theta_t,\cos\theta_t)$: heading representation
-- $v_{front},v_{left},v_{right},v_{back}$: heading-aligned visited-cell indicators
+- $v_f,v_r,v_l,v_b$: heading-aligned local visited-or-blocked flags for front, right, left, and back,
+- $d_{dwell}$: normalized dwell feature,
+- $\ell$: recent-loop score,
+- $p_0,\dots,p_7$: normalized proximity readings,
+- $(\sin\theta_t,\cos\theta_t)$: robot heading representation,
+- $\hat d_t$: normalized target distance,
+- $(\sin\phi_t,\cos\phi_t)$: target bearing representation.
 
-The target is hidden during the RL phase. Do not provide target-relative distance or bearing to the policy during search.
+Before target reveal:
 
-The environment may still compute target distance and bearing internally for:
+$$
+\hat d_t=0,
+\qquad
+\sin\phi_t=0,
+\qquad
+\cos\phi_t=0.
+$$
 
-- checking whether the target has been revealed,
-- controlling deterministic homing after reveal,
-- auxiliary logging.
+After target reveal, these target-relative features are computed from the current robot pose and the target position.
 
 ## Action space
 
-Start with the simplest reliable RL action set:
+The current code uses the simplest reliable macro-action set:
 
 $$
-\mathcal{A}=
-\{\texttt{forward},\texttt{rotate\_left},\texttt{rotate\_right}\}
+\mathcal{A}=\{
+\texttt{forward},
+\texttt{rotate\_right},
+\texttt{rotate\_left}
+\}
 $$
 
-Optional later extension:
+The action-index order is:
 
-$$
-\mathcal{A}=
-\{\texttt{forward},\texttt{rotate\_left},\texttt{rotate\_right},
-\texttt{forward\_left},\texttt{forward\_right}\}
-$$
+| Action index | Code action |
+|---:|---|
+| 0 | `forward` |
+| 1 | `rotate_right` |
+| 2 | `rotate_left` |
 
 Do not add diagonal actions until the three-action version trains and evaluates.
 
@@ -94,122 +103,169 @@ Do not add diagonal actions until the three-action version trains and evaluates.
 
 GPS is used for environment-side bookkeeping, not as raw global input to the policy.
 
-Let the robot spawn position be $(x_0,y_0)$, and current position be $(x_t,y_t)$:
+The current code uses a fixed origin:
 
 $$
-\Delta x_t=x_t-x_0,\qquad \Delta y_t=y_t-y_0
+(x_0,y_0)=(0,-0.9)
 $$
 
-Use centered rounding:
+and cell size:
 
 $$
-i_t=\mathrm{round}\left(\frac{\Delta x_t}{c}\right),\qquad
-j_t=\mathrm{round}\left(\frac{\Delta y_t}{c}\right)
+c=0.1\text{ m}.
 $$
 
-Recommended initial cell size:
+Given current position $(x_t,y_t)$:
 
 $$
-c=0.2\text{ m}
+\Delta x_t=x_t-x_0,
+\qquad
+\Delta y_t=y_t-y_0.
 $$
 
-Store visited cells as a Python set:
+The grid cell is assigned with centered rounding:
 
-```python
-visited = set()
-visited.add((i, j))
-```
+$$
+i_t=\mathrm{round\_half\_away\_from\_zero}\left(\frac{\Delta x_t}{c}\right),
+\qquad
+j_t=\mathrm{round\_half\_away\_from\_zero}\left(\frac{\Delta y_t}{c}\right).
+$$
 
-## Target reveal
+Visited cells and blocked cells are stored as Python sets.
 
-The target is hidden during search.
+## Cell status categories
 
-It becomes revealed when:
+The current code uses four cell-status categories:
+
+| Status | Meaning |
+|---|---|
+| `same` | robot remains in the current cell |
+| `unvisited` | robot entered a new cell |
+| `visited` | robot entered an old cell not in the recent-cell window |
+| `recent` | robot entered a recently visited cell |
+
+A small recent-cell deque is used to detect short loops.
+
+## Loop score
+
+The current loop score is:
+
+$$
+\ell = 1 - \frac{|\mathrm{unique}(C_{recent})|}{|C_{recent}|}
+$$
+
+where $C_{recent}$ is the recent-cell window. Higher values indicate more repetitive local motion.
+
+## Dwell feature
+
+The code tracks how many consecutive decision steps the robot remains in the same cell. The first two same-cell steps are tolerated, and the observation uses:
+
+$$
+d_{dwell}=\frac{\min(\max(0,dwell\_count-2),5)}{5}.
+$$
+
+Collision steps do not increase the observed dwell feature.
+
+## Target reveal and reach
+
+The target is hidden before reveal. It becomes revealed when:
 
 $$
 d_t \le R_{reveal}
 $$
 
+with:
+
+$$
+R_{reveal}=0.35\text{ m}.
+$$
+
 After reveal:
 
-- the RL policy stops acting,
-- the search episode is counted as successful,
-- the final RL transition receives a reveal reward,
-- the deterministic homing controller takes over,
-- the Webots episode continues until deterministic homing reaches the target or times out.
+- the episode dictionary marks `revealed=True`,
+- target distance and bearing become available in the observation,
+- the reward switches to the target-approach reward,
+- the same learned policy continues selecting actions.
 
-## Reward design
+The target is reached when:
 
-### Search reward
+$$
+d_t \le R_{reach}
+$$
 
-Use additive search rewards with a target-reveal bonus:
+with:
+
+$$
+R_{reach}=0.15\text{ m}.
+$$
+
+## Search reward before reveal
+
+The pre-reveal reward is:
 
 $$
 r_t^{search}
-=
-\mathbf{1}_{new}r_{new}
--
-\mathbf{1}_{revisit}r_{rev}
--
-\mathbf{1}_{collision}r_{coll}
--
-\mathbf{1}_{dwell}r_{dwell}
-+
-\mathbf{1}_{revealed}r_{reveal}
+= c_t
+-2\mathbf{1}_{collision}
+-0.2\,dwell_t
+-0.5\,\ell_t\,\mathbf{1}_{loopPenalty}
++10\mathbf{1}_{revealed}.
 $$
 
-Recommended starting values:
+The cell-status term $c_t$ is:
 
-- $r_{new}=1.0$
-- $r_{rev}=0.1$
-- $r_{coll}=1.0$
-- $r_{dwell}=0.1$
-- $r_{reveal}=10.0$
+| Cell status | Reward term |
+|---|---:|
+| `unvisited` | `+1.0` |
+| `visited` | `-0.1`, or `0.0` in escape mode |
+| `recent` | `-0.1` |
+| `same` | `0.0` |
 
-The reward is for revealing the target, not for reaching it during deterministic homing.
+If a collision occurs, the cell-status term is forced to `0.0`, and collision becomes the dominant penalty.
 
-### Homing reward
+The loop penalty is applied when the step is not a collision and the cell is not unvisited.
 
-Do not use a learned homing reward in the first working version.
+## Escape mode
 
-After reveal, deterministic homing is environment-side control. Its progress, collisions, recovery attempts, and final target reaching may be logged as auxiliary metrics, but they should not create additional DQN training rewards.
+Escape mode is enabled when all local front/right/left/back cells in the previous observation are already visited or blocked. In escape mode, the normal visited-cell penalty is removed to avoid trapping the policy in a fully explored neighborhood.
 
-## Deterministic homing controller
+## Target-approach reward after reveal
 
-Use a simple controller after target reveal:
+After reveal, the code uses:
 
-1. compute target-relative bearing $\phi_t$ and distance $d_t$,
-2. if $|\phi_t|$ is above a heading tolerance, rotate toward the target,
-3. otherwise move forward a short distance,
-4. repeat until $d_t \le R_{goal}$ or a homing timeout occurs,
-5. if a collision is detected, perform simple recovery and continue.
+$$
+r_t^{approach}
+=
+-0.02
+-3\mathbf{1}_{collision}
+-0.5\,dwell_t
++5(d_{prev}-d_t)
++10\mathbf{1}_{reached}.
+$$
 
-Initial recovery behavior can be:
-
-1. stop motors,
-2. reverse a short distance,
-3. rotate away from the strongest proximity reading,
-4. resume homing.
-
-Do not penalize the RL agent for collisions that occur during deterministic homing. Keep them as auxiliary diagnostic logs only.
+Here $d_t$ is the normalized target distance. The progress term rewards movement toward the target after reveal.
 
 ## Success and termination conditions
 
-### RL success
+### Reveal success
 
-An episode counts as successful for RL evaluation when:
+An episode counts as successful for the main continual-learning metric when:
 
 - the target is revealed.
 
-### Webots episode termination
+### Reach success
 
-The Webots episode ends when:
+An episode counts as final target-reaching success when:
 
-- deterministic homing reaches the target after reveal,
-- homing times out after reveal,
-- maximum search decision steps are reached without target reveal,
-- optionally, unrecoverable search-phase collision occurs.
+- the target is reached after reveal.
 
-Use “decision step” to mean one completed RL macro-action, not one Webots controller step.
+### Episode termination
 
-For DQN training, the terminal search transition should be the transition that reveals the target or reaches the maximum search-step limit. The deterministic homing rollout after reveal should not be added to the DQN replay buffer.
+The current code ends the episode when:
+
+- the target is reached, or
+- the maximum decision-step limit is reached.
+
+The terminal DQN transition is represented by `next_state=None`.
+
+The current timeout flag is named `timeout_before_reveal` in the logger. Treat this as a legacy field name unless the code is later changed to separate pre-reveal and post-reveal timeouts.

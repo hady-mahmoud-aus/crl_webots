@@ -6,7 +6,7 @@ This project is an inspired-by adaptation.
 
 Use:
 
-> Double DQN for discrete Webots search control, selective episodic replay inspired by OPR, and DQN-compatible EWC-style regularization inspired by KGCRL, with deterministic post-reveal homing.
+> Double DQN for discrete Webots target-revealing navigation, OPR-inspired Selective Search Episode Replay (SSER), and DQN-compatible EWC-style regularization inspired by KGCRL.
 
 Avoid:
 
@@ -14,9 +14,42 @@ Avoid:
 
 Also avoid:
 
-> The RL agent learns both search and homing.
+> This project exactly reproduces target-incremental visual navigation.
 
-The RL agent learns search/exploration until target reveal. Homing is handled by a fixed controller.
+The project uses compact e-puck sensors in Webots, not egocentric RGB visual navigation.
+
+## Alignment with OPR
+
+OPR motivates:
+
+- storing high-quality previous navigation experience,
+- replaying selected past episodes,
+- reducing catastrophic forgetting with small memory,
+- retaining performance on learned targets/tasks while learning new ones.
+
+This project does not implement original OPR because it does not use:
+
+- A3C on-policy learning,
+- ACER off-policy learning,
+- Retrace targets,
+- stored policy probabilities $\pi_t$,
+- stored value/Q outputs from the behavior policy,
+- target-incremental RGB visual navigation,
+- `Done` action success in AI2-THOR.
+
+Safe wording:
+
+> OPR motivates the selective storage of high-quality navigation episodes. This project adapts that idea into Selective Search Episode Replay (SSER), a DQN-compatible replay mechanism that stores top-K high-quality previous-scene episodes and samples them during later-scene Double DQN training.
+
+## SSER claim
+
+Use:
+
+> Selective Search Episode Replay (SSER) is an OPR-inspired replay mechanism for continual target-revealing navigation. After each scene, SSER stores top-K high-quality episodes ranked by reveal success, reach success, coverage, collisions, decision steps, and return. During later-scene training, a fixed portion of each Double DQN minibatch is sampled from this selective memory, allowing the agent to rehearse previous-scene behaviors while learning the current scene.
+
+Avoid:
+
+> SSER is the same as OPR.
 
 ## Alignment with KGCRL
 
@@ -30,41 +63,20 @@ KGCRL motivates:
 This project does not implement:
 
 - DDPG,
-- continuous velocity action space,
-- learned homing control,
+- continuous velocity actions,
 - knowledge-guided A*/PID exploration,
 - KGCRL's exact actor Fisher derivation,
 - no-replay constraint.
 
 Safe wording:
 
-> KGCRL motivates the use of EWC-style regularization for incremental navigation, but this project adapts the idea to a discrete Double DQN search controller. The post-reveal homing behavior is deterministic and is not learned by the RL policy.
-
-## Alignment with OPR
-
-OPR motivates:
-
-- storing high-quality previous experience,
-- replaying selected past episodes,
-- reducing catastrophic forgetting with small memory.
-
-This project does not implement:
-
-- A3C/ACER,
-- stored policy probabilities,
-- stored policy/value outputs for off-policy correction,
-- target-incremental visual navigation,
-- exact optimal policy replay.
-
-Safe wording:
-
-> OPR motivates selective storage of high-quality episodes, but this project implements a simpler DQN-compatible selective replay buffer for target-revealing search episodes.
+> KGCRL motivates the use of EWC-style regularization for incremental navigation, but this project adapts the idea to a discrete Double DQN controller using a DQN-compatible squared-gradient importance approximation.
 
 ## Novelty claim
 
 Use a modest novelty claim:
 
-> This project adapts continual reinforcement learning to a target-revealing search task in Webots and studies a lightweight hybrid of DQN-compatible EWC-style parameter retention and selective high-quality episodic replay across sequential scenes. A deterministic controller handles post-reveal homing, keeping the learned continual RL problem focused on search and exploration.
+> This project adapts continual reinforcement learning to a target-revealing Webots navigation task and studies a lightweight hybrid of Double DQN, OPR-inspired selective episode replay, and DQN-compatible EWC-style parameter retention across sequential scenes.
 
 ## What not to overclaim
 
@@ -74,7 +86,6 @@ Do not claim:
 - exact OPR reproduction,
 - state-of-the-art performance,
 - full visual navigation,
-- learned homing,
 - real-world transfer,
 - guaranteed prevention of forgetting.
 
@@ -84,13 +95,13 @@ Use “reduces forgetting” only if the metrics support it.
 
 Otherwise use:
 
-- “evaluates forgetting”
-- “attempts to reduce forgetting”
-- “provides a lightweight continual RL baseline for target-revealing search”
-- “shows partial retention under selective replay/EWC”
+- “evaluates forgetting,”
+- “attempts to reduce forgetting,”
+- “provides a lightweight continual RL baseline,”
+- “shows partial retention under SSER/EWC.”
 
 ## Clear problem statement for reports
 
 Use this framing:
 
-> The continual RL problem is formulated as sequential target-revealing search across Webots scenes. The learned policy controls the robot only during search. When the target is revealed, control switches to a deterministic homing routine that turns toward the target and moves forward with simple collision recovery. Therefore, the main evaluation metric for continual RL is target reveal rate, while target reaching after reveal is logged as an auxiliary homing diagnostic.
+> The continual RL problem is formulated as sequential target-revealing navigation across Webots scenes. The learned Double DQN policy controls the robot throughout the episode. Before target reveal, target-relative features are hidden and the reward encourages coverage-oriented search. After reveal, target distance and bearing are enabled and the reward encourages reaching the target. The main continual-learning metric is target reveal rate, while target reach rate is reported as a final episode-success metric.

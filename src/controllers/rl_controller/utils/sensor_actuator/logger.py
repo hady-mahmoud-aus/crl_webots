@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Literal
 import random, torch, numpy
 
-project_root = Path('C:/dev/AI Project/CRL')
 
 def getSaveDirectory(
     policy: Literal[
@@ -14,6 +13,11 @@ def getSaveDirectory(
         'dqn_replay_ewc'
         ]
     ):
+    cwd = Path.cwd()
+    project_root = next(
+        p for p in (cwd, *cwd.parents)
+        if p.name == "CRL"
+        )
     
     path = project_root / 'runs' / policy
     path.mkdir(parents=True, exist_ok=True)
@@ -27,7 +31,7 @@ episode_dict = {
 
     'revealed': False,
     'reached': False,
-    'timeout_before_reveal': False,
+    'timeout': False,
 
     'unique_cells_covered': pd.NA,
     'reward': pd.NA,
