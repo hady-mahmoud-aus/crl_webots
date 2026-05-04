@@ -47,7 +47,6 @@ src/worlds/*.jpeg
 src/worlds/*.png
 
 # Project run outputs
-runs/
 logs/
 outputs/
 checkpoints/
@@ -55,8 +54,6 @@ metrics/
 plots/
 
 # RL artifacts
-*.pt
-*.pth
 *.ckpt
 *.onnx
 *.pkl
@@ -68,17 +65,11 @@ tensorboard/
 wandb/
 
 # Data exports
-*.csv
 *.tsv
 *.jsonl
 *.parquet
 *.npz
 *.npy
-
-# Keep placeholder files
-!runs/.gitkeep
-!logs/.gitkeep
-!outputs/.gitkeep
 
 # Temporary files
 tmp/
@@ -90,3 +81,5 @@ temp/
 # OS-specific
 ehthumbs.db
 Desktop.ini
+
+requirements.txt
