@@ -107,11 +107,13 @@ Implement:
 - mixed replay batches
 - replay-only experiment variant
 
-Recommended first replay ratio:
+Current implemented replay ratio:
 
 ```text
-80% current replay, 20% old SSER replay
+75% current replay, 25% old SSER replay
 ```
+
+With `BATCH_SIZE = 64`, this gives `48` current transitions and `16` old SSER transitions per mixed minibatch.
 
 Success criterion:
 
@@ -126,14 +128,15 @@ Goal: add parameter-level retention.
 Implement:
 
 - parameter snapshot after each scene
-- squared-gradient importance estimate from DQN loss
-- online EWC accumulator
-- EWC loss during later scenes
+- current Q-output-sensitivity importance estimate
+- online EWC-style accumulator
+- EWC-style regularization loss during later scenes
 - EWC and SSER+EWC variants
 
 Success criterion:
 
 - variants run without numerical instability and produce comparable metrics.
+- documentation clearly states that the current implementation is not yet the intended TD-loss-gradient EWC estimate.
 
 ---
 

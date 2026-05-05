@@ -59,7 +59,7 @@ else:
     model_params_path = None
 
 if selective_replay_filename is not None:
-    selective_replay_buffer = torch.load(save_dir / selective_replay_filename)
+    selective_replay_buffer = torch.load(save_dir / selective_replay_filename, weights_only=False)
 else: 
     selective_replay_buffer = {0: None, 1: None}
     

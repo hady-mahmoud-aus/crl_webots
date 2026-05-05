@@ -268,4 +268,4 @@ The current code ends the episode when:
 
 The terminal DQN transition is represented by `next_state=None`.
 
-The current timeout flag is named `timeout_before_reveal` in the logger. Treat this as a legacy field name unless the code is later changed to separate pre-reveal and post-reveal timeouts.
+The current timeout flag is named `timeout` in the logger. It indicates that the episode hit the max decision-step limit before reaching the target. A future cleanup can split this into separate pre-reveal and post-reveal timeout fields.

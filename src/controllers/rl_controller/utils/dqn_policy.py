@@ -328,7 +328,7 @@ class DQnPolicy:
             
     def saveStateEWC(self, save_folder: Path):
         if self.ewc:
-            self.dqn_manager.saveEWC(self.ewc_buffer.memory, save_folder)
+            self.dqn_manager.saveEWC(self.ewc_buffer.memory, save_folder, self.scene_id)
             print('EWC transitions saved')
             
 

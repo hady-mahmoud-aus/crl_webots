@@ -8,8 +8,8 @@ import time
 REPO_NAME = "crl_webots"
 WEBOTS_EXE = r"webots"
 
-TRAIN_EPISODES = 2
-EVAL_EPISODES = 1
+TRAIN_EPISODES = 2000
+EVAL_EPISODES = 100
 
 MODEL_NAMES = ("model-_-0.pt", "model-0-1.pt", "model-1-2.pt", "model-_-1.pt", "model-_-2.pt")
 

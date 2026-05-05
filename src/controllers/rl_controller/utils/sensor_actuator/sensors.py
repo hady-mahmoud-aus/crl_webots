@@ -37,12 +37,16 @@ def readSensors(sensors: dict, type: Literal["distance"] = None, verbose=False):
             min, max = 50, 1800
             reading = minMax(sensor.getValue(), min, max)
             
-        else: reading = sensor.getValue()
+            # min, max = 66, 1200
+            # clip reading
+        else: 
+            reading = sensor.getValue()
         
         if not verbose:
             readings.append(reading)
             
-        else: readings[name] = reading
+        else: 
+            readings[name] = reading
     
     return readings
 
@@ -50,7 +54,8 @@ def readSensors(sensors: dict, type: Literal["distance"] = None, verbose=False):
 def readGPS(gps, verbose=False):
     reading = gps.getValues()[:2]
     
-    if not verbose: return reading
+    if not verbose: 
+        return reading
     
     axes = ['x', 'y']
     
@@ -63,7 +68,8 @@ def readHeading(inertial_unit, verbose=False):
     sin_theta = clean_zero(sin(theta))
     cos_theta = clean_zero(cos(theta))
     
-    if not verbose: return [sin_theta, cos_theta]
+    if not verbose: 
+        return [sin_theta, cos_theta]
     
     return {"sin(theta)": sin_theta, "cos(theta)": cos_theta}
 

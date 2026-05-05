@@ -188,7 +188,7 @@ class DQnManager:
         }, path)
         
     def fromSaved(self, path):
-        checkpoint = torch.load(path, map_location=self.device)
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
 
         self.policy_net.load_state_dict(checkpoint["policy_net"])
         self.target_net.load_state_dict(checkpoint["target_net"])
@@ -221,13 +221,13 @@ class DQnManager:
             return random.sample(scene_1, batch_size)
         
     def loadEWC(self, path):
-        state = torch.load(path, map_location=self.device)
+        state = torch.load(path, map_location=self.device, weights_only=False)
 
         self.ewc_manager = EWC.__new__(EWC)
         self.ewc_manager.mean_params = state["mean_params"]
         self.ewc_manager.kernel_diag = state["kernel_diag"]
         
-    def saveEWC(self, transitions: list, save_folder: Path):
+    def saveEWC(self, transitions: list, save_folder: Path, scene_id):
         self.updateEWC(transitions)
         
         ewc_dict = {
@@ -235,7 +235,7 @@ class DQnManager:
             "kernel_diag": self.ewc_manager.kernel_diag,
             }
         
-        scene_str = '0' if self.scene_id == 0 else '0-1'
+        scene_str = '0' if scene_id == 0 else '0-1'
         filename = f'ewc_state-{scene_str}.pt'
         torch.save(ewc_dict, (save_folder / filename))
         

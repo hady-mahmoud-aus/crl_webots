@@ -6,7 +6,7 @@ This project is an inspired-by adaptation.
 
 Use:
 
-> Double DQN for discrete Webots target-revealing navigation, OPR-inspired Selective Search Episode Replay (SSER), and DQN-compatible EWC-style regularization inspired by KGCRL.
+> Double DQN for discrete Webots target-revealing navigation, OPR-inspired Selective Search Episode Replay (SSER), and EWC-style Q-network regularization inspired by KGCRL.
 
 Avoid:
 
@@ -45,7 +45,7 @@ Safe wording:
 
 Use:
 
-> Selective Search Episode Replay (SSER) is an OPR-inspired replay mechanism for continual target-revealing navigation. After each scene, SSER stores top-K high-quality episodes ranked by reveal success, reach success, coverage, collisions, decision steps, and return. During later-scene training, a fixed portion of each Double DQN minibatch is sampled from this selective memory, allowing the agent to rehearse previous-scene behaviors while learning the current scene.
+> Selective Search Episode Replay (SSER) is an OPR-inspired replay mechanism for continual target-revealing navigation. The current code stores top-K reached episodes using a search-efficiency score based on coverage, collisions, and decision steps. During later-scene training, 25% of each replay-enabled Double DQN minibatch is sampled from this selective memory, allowing the agent to rehearse previous-scene behavior while learning the current scene.
 
 Avoid:
 
@@ -70,13 +70,13 @@ This project does not implement:
 
 Safe wording:
 
-> KGCRL motivates the use of EWC-style regularization for incremental navigation, but this project adapts the idea to a discrete Double DQN controller using a DQN-compatible squared-gradient importance approximation.
+> KGCRL motivates the use of EWC-style regularization for incremental navigation, but this project adapts the idea to a discrete Double DQN controller using a Q-output-sensitivity diagonal importance approximation.
 
 ## Novelty claim
 
 Use a modest novelty claim:
 
-> This project adapts continual reinforcement learning to a target-revealing Webots navigation task and studies a lightweight hybrid of Double DQN, OPR-inspired selective episode replay, and DQN-compatible EWC-style parameter retention across sequential scenes.
+> This project adapts continual reinforcement learning to a target-revealing Webots navigation task and studies a lightweight hybrid of Double DQN, OPR-inspired selective episode replay, and EWC-style Q-network parameter retention across sequential scenes.
 
 ## What not to overclaim
 

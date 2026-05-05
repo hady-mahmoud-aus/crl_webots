@@ -216,7 +216,9 @@ Relevant environment variables:
 | `SCENE_ID` | current scene id |
 | `PARENT_SCENE` | parent/previous scene label for filenames |
 | `EVAL` | evaluation flag |
-| `PARAMS_PATH` | checkpoint path |
+| `PARAMS_NAME` | checkpoint filename under `runs/<POLICY>/` |
+| `SELECTIVE_REPLAY_NAME` | SSER artifact filename under `runs/<POLICY>/` |
+| `EWC_STATE_NAME` | EWC state filename under `runs/<POLICY>/` |
 
 ## Current episode log fields
 
@@ -229,7 +231,7 @@ The logger currently tracks:
 | `seed` | random seed |
 | `revealed` | whether target was revealed |
 | `reached` | whether target was reached |
-| `timeout_before_reveal` | legacy timeout field |
+| `timeout` | max decision-step limit reached before target reach |
 | `unique_cells_covered` | number of visited cells |
 | `reward` | total episode reward |
 | `collisions` | search/control collision count |

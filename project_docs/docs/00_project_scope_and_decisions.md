@@ -1,4 +1,4 @@
-# 00 — Project Scope and Decisions
+# 00 - Project Scope and Decisions
 
 ## Current goal
 
@@ -8,9 +8,9 @@ The current code uses one discrete-action Double DQN controller. Before target r
 
 The implementation goal is not to reproduce KGCRL or OPR exactly. The project adapts their ideas into a simpler codebase:
 
-> Double DQN for discrete Webots navigation, OPR-inspired Selective Search Episode Replay (SSER) for rehearsal, and online EWC-style regularization for parameter retention.
+> Double DQN for discrete Webots navigation, OPR-inspired Selective Search Episode Replay (SSER) for rehearsal, and EWC-style Q-network regularization for parameter retention.
 
-## One-week implementation rule
+## Implementation rule
 
 Always prioritize a working pipeline over extra sophistication.
 
@@ -25,8 +25,8 @@ The code should be able to:
 3. train a Double DQN policy to reveal and then reach the target,
 4. train sequentially across scenes,
 5. evaluate old and current scenes using target reveal rate and target reach rate,
-6. save metrics and checkpoints,
-7. optionally enable SSER/selective replay and EWC.
+6. save logs, metrics, checkpoints, and enabled CRL artifacts,
+7. optionally enable SSER/selective replay and EWC-style regularization.
 
 ## Scope boundaries
 
@@ -46,8 +46,9 @@ The code should be able to:
 - blocked-cell marking after forward collisions
 - dwell and loop features for local anti-stall behavior
 - recent-cell tracking
-- SSER/selective episodic replay as a planned OPR-inspired extension
-- DQN-compatible online EWC approximation as a planned KGCRL-inspired extension
+- SSER/selective episodic replay as the implemented OPR-inspired replay variant
+- EWC-style Q-network regularization as the implemented KGCRL-inspired retention variant
+- root schedule scripts under `schedules/` for sequential training and evaluation
 - sequential evaluation and forgetting metrics based primarily on reveal rate
 
 ### Out of scope for the first working version
@@ -77,6 +78,10 @@ Use these unless there is a strong reason to change them:
 - **Soft target update:** `tau = 0.005`.
 - **Optimizer:** AdamW, learning rate `3e-4`, AMSGrad enabled.
 - **Exploration:** exponential epsilon decay from `0.9` to `0.01` with decay constant `2500`.
+- **SSER old replay ratio:** `25%` old SSER transitions and `75%` current replay transitions in replay-enabled minibatches.
+- **SSER memory:** top `K = 10` reached episodes per stored scene, ranked by current search-efficiency score.
+- **EWC strength:** `lambda = 10.0`.
+- **EWC importance:** current Q-output-sensitivity approximation, not yet TD-loss squared-gradient importance.
 - **Grid cell size:** `0.1 m`.
 - **Origin:** `(0, -0.9)`.
 - **Reveal radius:** `0.35 m`.
@@ -84,18 +89,17 @@ Use these unless there is a strong reason to change them:
 - **Primary metric:** target reveal rate.
 - **Final/auxiliary metric:** target reach rate.
 
-## Planned continual-learning defaults
+## Current implementation gaps
 
-Use these for the next continual-learning layers unless later experiments change them:
+These are current code-truth caveats, not intended final claims:
 
-- **SSER replay ratio:** start with 80% current replay and 20% old selective replay.
-- **SSER memory:** top-K high-quality previous-scene episodes.
-- **SSER ranking:** reveal success, target reaching, coverage, low collisions, shorter episodes, higher return.
-- **EWC:** online EWC approximation, not multi-anchor EWC.
-- **Parameter importance:** squared gradients of the DQN TD loss.
+- SSER stores only episodes with `reached=True`, so reveal-only successes are not currently preserved despite reveal rate being the primary metric.
+- The current EWC variant estimates parameter importance from sensitivity of `max_a Q(s,a)`, not from squared gradients of the Double-DQN TD loss.
+- Saved SSER replay objects contain Python `Transition` instances; PyTorch artifact loading may require explicit non-weights-only loading support.
+- Transitions do not store phase labels, scene ids, macro-action duration, or explicit done flags.
 
 ## Project method statement
 
 Use this statement in reports or code comments:
 
-> The proposed method trains a discrete-action Double DQN controller for continual target-revealing navigation in Webots e-puck scenes. The target is hidden during the search regime and revealed once the robot enters a reveal radius. After reveal, the same learned policy continues with target-relative distance and bearing features to reach the target. To reduce forgetting across scenes, the planned continual-learning method combines OPR-inspired Selective Search Episode Replay (SSER) with a DQN-compatible online EWC approximation inspired by KGCRL. The method is intentionally lightweight and adapted for a short Webots implementation timeline.
+> The proposed method trains a discrete-action Double DQN controller for continual target-revealing navigation in Webots e-puck scenes. The target is hidden during the search regime and revealed once the robot enters a reveal radius. After reveal, the same learned policy continues with target-relative distance and bearing features to reach the target. To evaluate forgetting across scenes, the code supports a fine-tuning baseline plus OPR-inspired Selective Search Episode Replay (SSER) and an EWC-style Q-network regularizer inspired by KGCRL. The method is intentionally lightweight and adapted for a short Webots implementation timeline; it should not be described as an exact KGCRL or OPR reproduction.
