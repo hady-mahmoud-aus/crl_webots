@@ -1,10 +1,14 @@
-import torch, random, math, collections
+import random
+import math
+import collections
+import torch
 from torch import nn
 from typing import Literal
 from pathlib import Path
 
 from .buffer import ReplayBuffer
 from .architecture import DQN
+from .ewc_files.ewc import EWC
 
 BATCH_SIZE = 64
 SELECTIVE_EPISODE_REPLAY_PERC = 0.25
@@ -13,10 +17,13 @@ GAMMA = 0.99 # discount factor
 TAU = 0.005 # update rate
 LR = 3e-4
 
-# epsilon-greedy hyperparameter
+# epsilon-greedy hyperparameters
 EPS_START = 0.9
 EPS_END = 0.01
 EPS_DECAY = 2500
+
+# ewc hyperparameters
+EWC_LAMBDA = 10.0
 
 n_observations = 19
 n_actions = 3
@@ -32,6 +39,7 @@ class DQnManager:
         scene_id: Literal[0, 1, 2],
         model_params: Path = None, 
         selective_replay_buffer: dict = None,
+        ewc_state_path: Path = None,
         eval = False
         ):
         
@@ -55,10 +63,19 @@ class DQnManager:
         self.replay, self.ewc = getFlagsCRL(scene_id, policy, mode='read')
         
         if self.replay:
-            self.selective_replay_buffer = selective_replay_buffer 
-
+            if selective_replay_buffer is not None:
+                self.selective_replay_buffer = selective_replay_buffer 
+            else: 
+                raise ValueError("Selective replay policy selected, but no selective replay buffer path provided")
+            
         if self.ewc:
-            pass
+            if ewc_state_path is not None:
+                self.loadEWC(ewc_state_path)
+            else: 
+                raise ValueError("EWC policy selected, but no state path provided")
+        else:
+            self.ewc_manager = None
+
 
     def getAction(self, state):
         state = state.to(self.device)
@@ -137,8 +154,10 @@ class DQnManager:
         # Bellman target
         target = reward_batch + GAMMA * next_values
 
-        # Train policy_net to match the target
         loss = self.loss_fn(q_sa, target)
+        
+        if self.ewc:
+            loss += EWC_LAMBDA * self.ewc_manager.loss(self.policy_net)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -200,6 +219,43 @@ class DQnManager:
         else: 
             scene_1 = flattenList(self.selective_replay_buffer[0])
             return random.sample(scene_1, batch_size)
+        
+    def loadEWC(self, path):
+        state = torch.load(path, map_location=self.device)
+
+        self.ewc_manager = EWC.__new__(EWC)
+        self.ewc_manager.mean_params = state["mean_params"]
+        self.ewc_manager.kernel_diag = state["kernel_diag"]
+        
+    def saveEWC(self, transitions: list, save_folder: Path):
+        self.updateEWC(transitions)
+        
+        ewc_dict = {
+            "mean_params": self.ewc_manager.mean_params,
+            "kernel_diag": self.ewc_manager.kernel_diag,
+            }
+        
+        scene_str = '0' if self.scene_id == 0 else '0-1'
+        filename = f'ewc_state-{scene_str}.pt'
+        torch.save(ewc_dict, (save_folder / filename))
+        
+    def updateEWC(self, transitions, rho=0.9):
+        states = [
+            t.state.detach().cpu()
+            for t in transitions
+            if t.state is not None
+        ]
+        samples = torch.stack(states).to(self.device)
+
+        def fn(module, x):
+            return module(x).max(dim=1).values.unsqueeze(-1)
+
+        new_ewc = EWC(self.policy_net, samples, fn)
+
+        if self.ewc_manager is not None:
+            new_ewc.kernel_diag = rho * self.ewc_manager.kernel_diag + new_ewc.kernel_diag
+
+        self.ewc_manager = new_ewc
         
         
         

@@ -44,6 +44,7 @@ eval = eval == 'True'
 
 model_params_filename = os.getenv ('PARAMS_NAME', None)  
 selective_replay_filename = os.getenv('SELECTIVE_REPLAY_NAME', None)
+ewc_state_filename = os.getenv('EWC_STATE_NAME', None)
 
 #########################
 
@@ -61,7 +62,11 @@ if selective_replay_filename is not None:
     selective_replay_buffer = torch.load(save_dir / selective_replay_filename)
 else: 
     selective_replay_buffer = {0: None, 1: None}
-
+    
+if ewc_state_filename is not None:
+    ewc_state_path = save_dir / ewc_state_filename
+else:
+    ewc_state_path = None
 
 
 # OBJECT INITIALIZATION
@@ -75,6 +80,7 @@ dqn_manager = DQnManager(
     scene_id=scene_id,
     model_params=model_params_path,
     selective_replay_buffer=selective_replay_buffer,
+    ewc_state_path=ewc_state_path,
     eval=eval
     )
 
@@ -132,7 +138,7 @@ while robot.step(timestep) != -1:
             
             # save CRL info
             dqn_policy.saveSelectiveReplayBuffer(save_dir, selective_replay_buffer)
-            dqn_policy.saveTransitionsEWC(save_dir)
+            dqn_policy.saveStateEWC(save_dir)
             
             # exit webots
             robot.simulationQuit(0)

@@ -326,10 +326,9 @@ class DQnPolicy:
     
     
             
-    def saveTransitionsEWC(self, save_folder: Path):
+    def saveStateEWC(self, save_folder: Path):
         if self.ewc:
-            filename = f"ewc-transitions-{self.scene_id}.pt"
-            torch.save(self.ewc_buffer.memory, (save_folder / filename))
+            self.dqn_manager.saveEWC(self.ewc_buffer.memory, save_folder)
             print('EWC transitions saved')
             
 
