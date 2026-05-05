@@ -1,0 +1,26 @@
+{
+    "logs-eval-1-0.csv": {
+        "success_rate": 0.89,
+        "average_search_efficiency": 0.782
+    },
+    "logs-eval-0-0.csv": {
+        "success_rate": 0.94,
+        "average_search_efficiency": 0.838
+    },
+    "logs-eval-1-2.csv": {
+        "success_rate": 0.87,
+        "average_search_efficiency": 0.692
+    },
+    "logs-eval-_-0.csv": {
+        "success_rate": 1.0,
+        "average_search_efficiency": 0.864
+    },
+    "logs-eval-1-1.csv": {
+        "success_rate": 0.95,
+        "average_search_efficiency": 0.701
+    },
+    "logs-eval-0-1.csv": {
+        "success_rate": 0.94,
+        "average_search_efficiency": 0.738
+    }
+}
