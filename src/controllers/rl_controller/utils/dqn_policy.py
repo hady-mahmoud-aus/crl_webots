@@ -1,5 +1,5 @@
 from controller import Supervisor
-from collections import deque, namedtuple
+from collections import deque
 from copy import deepcopy
 from typing import Literal
 import torch

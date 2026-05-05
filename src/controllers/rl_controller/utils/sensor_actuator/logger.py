@@ -5,6 +5,7 @@ import random
 import torch
 import numpy
 
+REPO_NAME = "crl_webots"
 
 def getSaveDirectory(
     policy: Literal[
@@ -18,7 +19,7 @@ def getSaveDirectory(
     cwd = Path.cwd()
     project_root = next(
         p for p in (cwd, *cwd.parents)
-        if p.name == "crl_webots"
+        if p.name == REPO_NAME
         )
     
     path = project_root / 'runs' / policy
