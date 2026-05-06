@@ -4,7 +4,7 @@ from controller import Supervisor
 
 from utils.component_manager import ComponentManager
 from utils.position_related import TargetManager
-from utils.sensor_actuator.logger import getEpisodeDataFrame, getSaveDirectory, setAllSeeds
+from utils.misc.logger import getEpisodeDataFrame, getSaveDirectory, setAllSeeds
 
 from utils.rl_specific.dqn_manager import DQnManager
 from utils.dqn_policy import DQnPolicy, calculated_max_steps

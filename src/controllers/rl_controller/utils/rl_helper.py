@@ -1,6 +1,6 @@
 import torch
 
-from .sensor_actuator.sensors import readSensors, readHeading
+from .misc.sensors import readSensors, readHeading
 from .cell_tracker import CellTracker
 from .position_related import TargetManager
 

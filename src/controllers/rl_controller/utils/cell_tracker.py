@@ -1,7 +1,7 @@
 from math import ceil, floor
 from collections import deque
 
-from .sensor_actuator.sensors import readGPS, readHeading
+from .misc.sensors import readGPS, readHeading
 
 # CONSTANTS
 #########################

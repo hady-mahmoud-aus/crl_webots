@@ -9,10 +9,10 @@ from .cell_tracker import CellTracker
 from .component_manager import ComponentManager
 from .position_related import TargetManager, arena_size, resetPosition
 from .actions import action, actionComplete, onCollision, forward_step_length
-from .sensor_actuator.motors import setVelocityAll
+from .misc.motors import setVelocityAll
 from .rl_helper import getObservation, getReward
-from .sensor_actuator.logger import episode_dict
-from .sensor_actuator.metrics import getSearchEfficiency
+from .misc.logger import episode_dict
+from .misc.metrics import getSearchEfficiency
 
 from .rl_specific.buffer import ReplayBuffer, PriorityBuffer, ReservoirBuffer
 from .rl_specific.dqn_manager import DQnManager, getFlagsCRL, Transition

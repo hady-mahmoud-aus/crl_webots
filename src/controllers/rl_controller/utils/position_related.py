@@ -1,11 +1,12 @@
 # Target
 #########################
 
+from controller import Supervisor
 import random
 from math import dist, sin, cos, atan2
 
 from .cell_tracker import origin
-from .sensor_actuator.sensors import readGPS
+from .misc.sensors import readGPS
 
 
 arena_size = 2;
@@ -76,8 +77,6 @@ class TargetManager:
 
 # Episode Position Reset
 #########################
-
-from controller import Supervisor
 
 def resetPosition(robot: Supervisor, x=None, y=None):
     node = robot.getSelf()

@@ -1,7 +1,7 @@
 from math import pi
 
-from .sensor_actuator.sensors import readSensors
-from .sensor_actuator.motors import setVelocityAll
+from .misc.sensors import readSensors, collision_value, front_sensor_names
+from .misc.motors import setVelocityAll
 
 # CONSTANTS
 #########################
@@ -95,11 +95,8 @@ def actionComplete(targets: dict, position_sensors: dict, tolerance=0.02):
 #########################
 
 
-# Collision handling 
+# COLLISION HANDLING 
 #########################
-
-from .sensor_actuator.sensors import collision_value, front_sensor_names
-
 
 def reverse(motors: dict, position_sensors: dict):
     setVelocityAll(motors, forward_velocity / 2)
@@ -133,6 +130,7 @@ def onCollision(motors: dict, position_sensors: dict, distance_sensors: dict, re
 
 # VARIABLE ACTIONS
 #########################
+
 def getTurnWheelRadians(angle_radians: float):
     return turn_radians * (angle_radians / (pi / 2))
 
